@@ -1,5 +1,5 @@
-// Gaps in points, the `[display.<pattern>]` tables that override them for one display, and the display
-// patterns those tables and `[workspace-to-display]` use.
+// Gaps in points, the `[display.<pattern>]` tables that override them and the workspace count for one display,
+// and the display patterns those tables and `[workspace-to-display]` use.
 
 /// The gap between side-by-side windows (`horizontal`) and between stacked ones (`vertical`).
 public struct Inner: Equatable {
@@ -77,25 +77,29 @@ public struct Monitor: Equatable {
     public var isMain: Bool
     /// How many displays there are.
     public var count: Int
+    /// The display's number as `list-monitors` prints it: 1 for the leftmost display, and so on to the right.
+    public var number: Int
 
-    public init(name: String, isMain: Bool, count: Int) {
+    public init(name: String, isMain: Bool, count: Int, number: Int = 0) {
         self.name = name
         self.isMain = isMain
         self.count = count
+        self.number = number
     }
 }
 
-/// `main`, `secondary` (the non-main display when there are exactly two), or a case-insensitive
-/// substring of the display's name, such as `built-in` or `dell`.
+/// `main`, `secondary` (the non-main display when there are exactly two), a display number as `list-monitors`
+/// prints it, such as `2`, or a case-insensitive substring of the display's name, such as `built-in` or `dell`.
 public enum MonitorPattern: Equatable {
     case main, secondary
+    case number(Int)
     case name(String)
 
     init(_ text: String) {
         switch text {
         case "main": self = .main
         case "secondary": self = .secondary
-        default: self = .name(text)
+        default: self = Int(text).flatMap { $0 >= 1 ? .number($0) : nil } ?? .name(text)
         }
     }
 
@@ -103,6 +107,7 @@ public enum MonitorPattern: Equatable {
         switch self {
         case .main: monitor.isMain
         case .secondary: monitor.count == 2 && !monitor.isMain
+        case .number(let n): monitor.number == n
         case .name(let text): monitor.name.localizedCaseInsensitiveContains(text)
         }
     }
@@ -112,27 +117,38 @@ public enum MonitorPattern: Equatable {
 public struct DisplayOverride: Equatable {
     public var pattern: MonitorPattern
     public var gaps = GapsPatch()
+    /// The display's own workspace count, in place of `workspaces`.
+    public var workspaces: Int?
 
     init(_ pattern: String, _ t: Table) throws {
         guard !pattern.isEmpty else { throw ConfigError(path: t.path, "a display pattern can't be empty") }
         self.pattern = MonitorPattern(pattern)
         gaps = try t.table("gaps").map(GapsPatch.init) ?? gaps
-        if try t.int("workspaces") != nil {
-            throw ConfigError(path: t.path("workspaces"),
-                              "workspaces are numbered across displays now; put one on a display with [workspace-to-display]")
-        }
+        workspaces = try t.int("workspaces")
+        if let workspaces, workspaces < 0 { throw ConfigError(path: t.path("workspaces"), "must be 0 or more") }
         try t.done()
     }
 }
 
 extension Config {
-    /// The display tables matching `monitor`, least specific first: `main` and `secondary`, then name
-    /// patterns, shortest first, so applying them in order lets the most specific win.
+    /// The display tables matching `monitor`, least specific first: `main` and `secondary`, then numbers, then
+    /// name patterns, shortest first, so applying them in order lets the most specific win.
     private func overrides(for monitor: Monitor) -> [DisplayOverride] {
         func rank(_ override: DisplayOverride) -> Int {
-            if case .name(let text) = override.pattern { return text.count } else { return -1 }
+            switch override.pattern {
+            case .main, .secondary: -1
+            case .number: 0
+            case .name(let text): text.count
+            }
         }
         return displays.filter { $0.pattern.matches(monitor) }.sorted { rank($0) < rank($1) }
+    }
+
+    /// How many workspaces `monitor` has: the most specific `[display.<pattern>] workspaces`, else its count in
+    /// `workspaces` by its number, the last count going on for every display past the list.
+    public func workspaces(for monitor: Monitor) -> Int {
+        if let own = overrides(for: monitor).last(where: { $0.workspaces != nil })?.workspaces { return own }
+        return workspaces[min(max(monitor.number, 1), workspaces.count) - 1]
     }
 
     /// The gaps on `monitor`: the general ones, with the overrides of every matching display table applied.

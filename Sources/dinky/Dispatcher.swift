@@ -50,8 +50,8 @@ enum Dispatcher {
             return focusMonitor(number: n)
         case .layout(let names):
             return layout(names, window: window)
-        case .move(let direction):
-            return tree("move \(direction)") { $0.move(direction) }
+        case .move(let direction, let boundaries):
+            return move(direction, boundaries: boundaries)
         case .joinWith(let direction):
             return tree("join-with \(direction)") { $0.join(direction) }
         case .resize(let dimension, let delta):
@@ -114,24 +114,33 @@ enum Dispatcher {
     }
 
     /// The workspace a target names. `prev` and `next` step through the focused display's workspaces in number
-    /// order, without wrapping, from the one it shows or is switching to, so rapid requests add up.
+    /// order, without wrapping, from the one it shows or is switching to, so rapid requests add up. From a Space
+    /// that is no workspace (a full-screen app's, or one left over with windows), they go to the nearest workspace
+    /// that way in Mission Control.
     private static func resolve(_ target: WorkspaceTarget) throws(Refusal) -> Int {
         let model = AppState.shared.displays
         let numbers = AppState.shared.numbers
         model.reconcile()
         switch target {
         case .number(let n):
-            guard (1...numbers.count).contains(n) else { throw Refusal("no workspace \(n), there are \(numbers.count)") }
+            guard numbers.space(of: n) != nil else { throw Refusal("no workspace \(n), there are \(numbers.all.count)") }
             return n
         case .prev, .next:
-            guard let display = model.focusedDisplay(), let current = numbers.number(of: targetSpaceID(on: display)) else {
-                throw Refusal("not on a numbered workspace")
-            }
+            guard let display = model.focusedDisplay() else { throw Refusal("no display") }
             let here = numbers.workspaces(on: display)
-            guard let at = here.firstIndex(of: current) else { throw Refusal("not on a numbered workspace") }
-            let i = at + (target == .next ? 1 : -1)
-            guard here.indices.contains(i) else { throw Refusal("no \(target == .next ? "next" : "previous") workspace on this display") }
-            return here[i]
+            let none = Refusal("no \(target == .next ? "next" : "previous") workspace on this display")
+            let space = targetSpaceID(on: display)
+            if let current = numbers.number(of: space), let at = here.firstIndex(of: current) {
+                let i = at + (target == .next ? 1 : -1)
+                guard here.indices.contains(i) else { throw none }
+                return here[i]
+            }
+            guard let position = display.spaces.firstIndex(of: space) else { throw Refusal("not on a numbered workspace") }
+            let positions = here.compactMap { n in numbers.space(of: n).flatMap { display.spaces.firstIndex(of: $0) }.map { (n, $0) } }
+                .sorted { $0.1 < $1.1 }
+            guard let nearest = target == .next ? positions.first(where: { $0.1 > position }) : positions.last(where: { $0.1 < position })
+            else { throw none }
+            return nearest.0
         }
     }
 
@@ -200,6 +209,20 @@ enum Dispatcher {
         }
     }
 
+    /// Moves the focused window in its tree. With `all-monitors-outer-frame`, a window with no window beyond it in
+    /// that direction goes on to the display there instead, as AeroSpace's `move --boundaries` does, unless that
+    /// display shows a full-screen app.
+    private static func move(_ direction: Direction, boundaries: FocusBoundaries) -> Reply {
+        if boundaries == .allMonitorsOuterFrame, let coordinator = AppState.shared.coordinator {
+            let id = coordinator.focusedWindow
+            if coordinator.isAtEdge(id, direction) == true, let from = AppState.shared.displays.display(ofWindow: id),
+               let to = display(beyond: from, direction), to.userSpaces.contains(to.currentSpaceID) {
+                return moveWindow(id, to: to, enteringFrom: direction.opposite)
+            }
+        }
+        return tree("move \(direction)") { $0.move(direction) }
+    }
+
     /// Applies the layout after the last that describes the window now (see `LayoutName.next`): floating or tiling
     /// for the window, scrolling for its workspace, a mode, an orientation or both for its container, which takes a
     /// scrolling workspace back to its tree. Anything but floating tiles a floating window first.
@@ -246,6 +269,20 @@ enum Dispatcher {
         // The Space is on screen, so there is nothing to show first.
         if follow { AppState.shared.coordinator?.focus(wid) }
         return .ok("moved window \(wid) to display \(n + 1)")
+    }
+
+    /// Moves a tiled window to the current Space of another display, into its tree at the edge it comes in by,
+    /// and focuses it there.
+    private static func moveWindow(_ wid: WindowID, to display: Display, enteringFrom side: Direction) -> Reply {
+        let n = (AppState.shared.displays.displays.firstIndex(of: display) ?? 0) + 1
+        let coordinator = AppState.shared.coordinator
+        coordinator?.entering[wid] = side
+        defer { coordinator?.entering[wid] = nil }
+        if let reply = relocate(wid, to: display.currentSpaceID, on: display, destination: "display \(n)", follow: true) {
+            return reply
+        }
+        coordinator?.focus(wid)
+        return .ok("moved window \(wid) to display \(n)")
     }
 
     /// Moves a new window to the current Space of `display`, without telling the coordinator, which is holding it

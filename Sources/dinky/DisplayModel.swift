@@ -40,6 +40,8 @@ struct Display: Equatable {
 // Displays, their Spaces, the current and previous Space per display, and which display has focus.
 // Refreshed from WindowServer Space events, screen reconfiguration, a poll and `reconcile()`. Main thread only.
 final class DisplayModel {
+    /// Left to right, then top to bottom, as AeroSpace numbers monitors: `list-monitors`, `focus-monitor N`,
+    /// next and previous, and which display gets which workspace all go by this order.
     private(set) var displays: [Display] = []
     /// The Space each display was on before its current one, by display UUID, for back-and-forth.
     private var previousSpaceIDs: [String: UInt64] = [:]
@@ -134,6 +136,6 @@ final class DisplayModel {
                            spaces: d.spaces.map(\.spaceID),
                            userSpaces: d.spaces.filter(\.isUser).map(\.spaceID),
                            currentSpaceID: d.currentSpaceID)
-        }
+        }.sorted { ($0.frame.minX, $0.frame.minY) < ($1.frame.minX, $1.frame.minY) }
     }
 }

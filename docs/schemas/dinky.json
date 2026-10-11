@@ -12,14 +12,16 @@
       "description": "Register dinky as a login item."
     },
     "workspaces": {
-      "type": "integer",
-      "minimum": 1,
-      "default": 5,
-      "description": "Workspaces across all displays, numbered from 1, one native Space each. dinky creates and removes Spaces to match."
+      "oneOf": [
+        { "type": "integer", "minimum": 1 },
+        { "type": "array", "items": { "type": "integer", "minimum": 0 }, "minItems": 1 }
+      ],
+      "default": [5, 4],
+      "description": "Workspaces on each display, one native Space each: the first count on the leftmost display, the next on the second, and the last on every display after; one number for the same on every display. A [display.<pattern>] table can give a display its own. They are numbered from 1 across the displays, left to right: with [5, 4], the first display has 1 to 5 and the second 6 to 9. dinky creates and removes Spaces to match."
     },
     "workspace-to-display": {
       "type": "object",
-      "description": "By workspace number, the display it lives on: a pattern (main, secondary, or a case-insensitive part of the display's name as `dinky list-displays` prints it) or a list of them, the first that matches a connected display winning. Other workspaces, and these when no pattern matches, live on the main display.",
+      "description": "By workspace number, a display to move it to from its own: a pattern (main, secondary, a display number or a case-insensitive part of the display's name as `dinky list-displays` prints them) or a list of them, the first that matches a connected display winning.",
       "propertyNames": { "pattern": "^[1-9][0-9]*$" },
       "additionalProperties": {
         "oneOf": [
@@ -99,12 +101,13 @@
     "gaps": { "$ref": "#/definitions/gaps" },
     "display": {
       "type": "object",
-      "description": "Overrides for one display, keyed by pattern: main, secondary, or a case-insensitive part of the display's name as `dinky list-displays` prints it.",
+      "description": "Overrides for one display, keyed by pattern: main, secondary, a display number (1 is the leftmost), or a case-insensitive part of the display's name as `dinky list-displays` prints them.",
       "additionalProperties": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "gaps": { "$ref": "#/definitions/gaps" }
+          "gaps": { "$ref": "#/definitions/gaps" },
+          "workspaces": { "type": "integer", "minimum": 0, "description": "This display's workspaces, in place of the top-level count." }
         }
       }
     },

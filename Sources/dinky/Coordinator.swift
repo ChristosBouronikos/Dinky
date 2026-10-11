@@ -43,6 +43,8 @@ final class Coordinator {
     var adoptTargets: [WindowID: String] = [:]
     /// New windows on their way to the focused display, kept out of the trees until they arrive.
     var adopting: Set<WindowID> = []
+    /// Windows a `move` is taking over a display's edge, and the edge of the other display's tree they come in by.
+    var entering: [WindowID: Direction] = [:]
     /// The tiled window being dragged with the mouse, until the button is released. See Drag.swift.
     var dragging: WindowID?
     lazy var placeholders = DragPlaceholders()
@@ -241,7 +243,12 @@ final class Coordinator {
         if let old { edit(old) { $0.remove(window.id) } }
         // A window coming from another Space's tree is moving, not switching tabs: tabs share a Space.
         if let new, old == nil, holdAsTab(window, in: new) { return }
-        if let new { edit(new) { $0.insert(window.id) } }
+        if let new {
+            let side = entering.removeValue(forKey: window.id)
+            edit(new) { workspace in
+                if let side { workspace.insert(window.id, enteringFrom: side) } else { workspace.insert(window.id) }
+            }
+        }
         placements[window.id]!.space = new
     }
 

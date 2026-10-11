@@ -40,8 +40,7 @@ extension Dispatcher {
         let model = AppState.shared.displays
         model.reconcile()
         guard let from = model.focusedDisplay() else { return .error("no display") }
-        let line = target.direction.map { displays(inLineWith: from, $0.orientation, model.displays) }
-            ?? model.displays.sorted { ($0.frame.minX, $0.frame.minY) < ($1.frame.minX, $1.frame.minY) }
+        let line = target.direction.map { displays(inLineWith: from, $0.orientation, model.displays) } ?? model.displays
         let forward = target.direction?.isForward ?? (target == .next)
         let index = line.firstIndex(of: from)! + (forward ? 1 : -1)
         guard line.indices.contains(index) else {
@@ -83,6 +82,13 @@ extension Dispatcher {
         return .ok("focused window \(id) \(window.appName ?? "")")
     }
 
+    /// The display next to `from` in `direction`, nil when there is none that way.
+    static func display(beyond from: Display, _ direction: Direction) -> Display? {
+        let line = displays(inLineWith: from, direction.orientation, AppState.shared.displays.displays)
+        let index = line.firstIndex(of: from)! + (direction.isForward ? 1 : -1)
+        return line.indices.contains(index) ? line[index] : nil
+    }
+
     /// Displays in the same row (for a horizontal axis) or column as `from`, `from` included, ordered along it.
     private static func displays(inLineWith from: Display, _ axis: Orientation, _ all: [Display]) -> [Display] {
         let horizontal = axis == .horizontal
@@ -92,12 +98,13 @@ extension Dispatcher {
         }.sorted { horizontal ? $0.frame.minX < $1.frame.minX : $0.frame.minY < $1.frame.minY }
     }
 
-    /// The nearest window on the current Space whose centre lies in the direction, by distance between centres.
+    /// The nearest window on the focused display's current Space whose centre lies in the direction, by distance
+    /// between centres.
     private static func focusOnScreen(_ direction: Direction) -> Reply {
         let model = AppState.shared.displays
         model.reconcile()
-        guard let main = model.displays.first(where: \.isMain) ?? model.displays.first else { return .error("no display") }
-        let onSpace = Set(dinky_space_window_ids(main.currentSpaceID, false).map(\.uint32Value))
+        guard let display = model.focusedDisplay() else { return .error("no display") }
+        let onSpace = Set(dinky_space_window_ids(display.currentSpaceID, false).map(\.uint32Value))
         let windows = windowList().filter { onSpace.contains($0.id) }
         guard let front = windows.first(where: { $0.id == frontWindowID() }) else { return .error("no focused window") }
         let from = CGPoint(x: front.frame.midX, y: front.frame.midY)

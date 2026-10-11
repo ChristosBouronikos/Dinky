@@ -2,8 +2,8 @@ import AppKit
 import DinkyConfig
 import DinkyPrivate
 
-// Workspace numbers: which native Space each workspace is. Workspaces are numbered across displays and live
-// where `[workspace-to-display]` puts them, else on the main display. `arrange()` makes the Spaces match: it
+// Workspace numbers: which native Space each workspace is. Each display has its own run of workspaces, numbered
+// on from the display to its left (`WorkspacePlan.homes`). `arrange()` makes the Spaces match: it
 // runs `WorkspacePlan`'s steps (create a Space, move a Space's windows, remove an empty Space) until there are
 // none left. It runs at launch, on config reload, and a moment after displays or Spaces come and go. Between
 // runs a workspace stays on its Space by ID, wherever macOS moves that Space.
@@ -27,7 +27,8 @@ final class WorkspaceNumbers {
     /// Set by a display coming or going, until an arrangement completes and windows are back on their workspaces.
     private var displaced = false
 
-    var count: Int { AppState.shared.config.workspaces }
+    /// The workspaces there are, in number order.
+    var all: [Int] { binding.keys.sorted() }
 
     func space(of n: Int) -> UInt64? { binding[n] }
     func number(of space: UInt64) -> Int? { binding.first { $0.value == space }?.key }
@@ -46,14 +47,17 @@ final class WorkspaceNumbers {
         let model = AppState.shared.displays
         knownDisplays = Set(model.displays.map(\.uuid))
         var main = model.displays.first(where: \.isMain)?.uuid
-        // A display coming or going, or another becoming main, moves workspaces.
+        var order = model.displays.map(\.uuid)
+        // A display coming or going, another becoming main, or the displays being rearranged moves workspaces:
+        // a display with none of its own gets one by its place in the order.
         model.observe { [weak self] model in
             guard let self else { return }
             let now = Set(model.displays.map(\.uuid))
             let nowMain = model.displays.first(where: \.isMain)?.uuid
-            guard now != knownDisplays || nowMain != main else { return }
+            let nowOrder = model.displays.map(\.uuid)
+            guard now != knownDisplays || nowMain != main || nowOrder != order else { return }
             let (connected, disconnected) = (now.subtracting(knownDisplays), knownDisplays.subtracting(now))
-            (knownDisplays, main) = (now, nowMain)
+            (knownDisplays, main, order) = (now, nowMain, nowOrder)
             if !connected.isEmpty { print("displays: connected \(connected.sorted())") }
             if !disconnected.isEmpty { print("displays: disconnected \(disconnected.sorted())") }
             fflush(stdout)
@@ -98,8 +102,11 @@ final class WorkspaceNumbers {
         var completed = false
         for _ in 0..<50 {
             model.reconcile()
-            let displays = model.displays.map {
-                PlanDisplay(uuid: $0.uuid, monitor: model.monitor($0), spaces: $0.userSpaces, current: $0.currentSpaceID)
+            let config = AppState.shared.config
+            let displays = model.displays.map { display in
+                let monitor = model.monitor(display)
+                return PlanDisplay(uuid: display.uuid, monitor: monitor, spaces: display.userSpaces,
+                                   current: display.currentSpaceID, workspaces: config.workspaces(for: monitor))
             }
             guard !displays.isEmpty else { break }
             let occupied = occupiedSpaces(among: displays.flatMap(\.spaces))

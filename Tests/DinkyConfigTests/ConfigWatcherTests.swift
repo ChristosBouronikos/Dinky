@@ -13,7 +13,7 @@ struct ConfigWatcherTests {
         let broken = DispatchSemaphore(value: 0)  // error reported
         let watcher = ConfigWatcher(url: url) { result in
             switch result {
-            case .success(let config) where config.workspaces == 4: changed.signal()
+            case .success(let config) where config.workspaces == [4]: changed.signal()
             case .failure(let error) where error.path == "gap": broken.signal()
             default: break
             }

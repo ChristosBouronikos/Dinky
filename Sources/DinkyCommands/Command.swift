@@ -13,7 +13,8 @@ public enum Command: Equatable, Sendable {
     case focusMonitor(MonitorTarget)
     /// `focus-monitor N`: the display numbered N by `list-monitors`, from 1.
     case focusMonitorNumber(Int)
-    case move(Direction)
+    /// Move the focused window in a direction; with `all-monitors-outer-frame`, on to the next display at the edge.
+    case move(Direction, boundaries: FocusBoundaries = .workspace)
     case joinWith(Direction)
     case resize(ResizeDimension, by: Int)
     /// One layout, or several to cycle through: the first that does not describe the current state wins,
@@ -48,7 +49,7 @@ public enum DisplayTarget: String, Equatable, Sendable {
     case prev, next
 }
 
-/// Where `focus` looks: the focused workspace's tree, or on across displays up to their outer frame.
+/// Where `focus` looks and `move` goes: the focused workspace's tree, or on across displays up to their outer frame.
 public enum FocusBoundaries: String, Equatable, Sendable {
     case workspace
     case allMonitorsOuterFrame = "all-monitors-outer-frame"

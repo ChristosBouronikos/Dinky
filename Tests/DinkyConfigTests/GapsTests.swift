@@ -60,11 +60,49 @@ struct GapsTests {
         """)
         #expect(config.workspaceDisplays == [4: [.secondary], 2: [.name("dell"), .main]])
         #expect(try Config.parse("").workspaceDisplays == [:])
-        assertError("[workspace-to-display]\n6 = 'main'\n", path: "workspace-to-display.6", line: 2, contains: "from 1 to 5")
+        #expect(try Config.parse("[workspace-to-display]\n12 = 'main'\n").workspaceDisplays == [12: [.main]],
+                "numbers past the first display's run are fine")
+        assertError("[workspace-to-display]\n0 = 'main'\n", path: "workspace-to-display.0", line: 2, contains: "not a workspace number")
         assertError("[workspace-to-display]\nfive = 'main'\n", path: "workspace-to-display.five", line: 2, contains: "not a workspace number")
         assertError("[workspace-to-display]\n1 = ''\n", path: "workspace-to-display.1", line: 2, contains: "can't be empty")
         assertError("[workspace-to-display]\n1 = 2\n", path: "workspace-to-display.1", line: 2, contains: "string")
-        assertError("[display.main]\nworkspaces = 1\n", path: "display.main.workspaces", line: 2, contains: "[workspace-to-display]")
+    }
+
+    @Test func `Workspaces per display`() throws {
+        let config = try Config.parse("""
+        workspaces = 5
+        [display.2]
+        workspaces = 4
+        [display.main]
+        workspaces = 6
+        [display.lg]
+        workspaces = 0
+        """)
+        #expect(config.workspaces(for: Monitor(name: "Built-in Retina Display", isMain: false, count: 2, number: 2)) == 4)
+        #expect(config.workspaces(for: Monitor(name: "DELL U2723QE", isMain: true, count: 2, number: 1)) == 6)
+        #expect(config.workspaces(for: Monitor(name: "Built-in Retina Display", isMain: false, count: 3, number: 3)) == 5)
+        #expect(config.workspaces(for: Monitor(name: "LG UltraFine", isMain: false, count: 2, number: 2)) == 0,
+                "a name beats a number")
+        #expect(config.workspaces(for: Monitor(name: "DELL U2723QE", isMain: true, count: 2, number: 2)) == 4,
+                "a number beats main")
+        assertError("[display.main]\nworkspaces = -1\n", path: "display.main.workspaces", line: 2, contains: "0 or more")
+    }
+
+    @Test func `Workspaces by display number, the last count going on`() throws {
+        func counts(_ config: Config, displays: Int) -> [Int] {
+            (1...displays).map { config.workspaces(for: Monitor(name: "x", isMain: $0 == 1, count: displays, number: $0)) }
+        }
+        #expect(counts(try Config.parse(""), displays: 4) == [5, 4, 4, 4], "the default")
+        #expect(counts(try Config.parse("workspaces = [7, 3]\n"), displays: 3) == [7, 3, 3])
+        #expect(counts(try Config.parse("workspaces = [5, 4, 2]\n"), displays: 4) == [5, 4, 2, 2])
+        #expect(counts(try Config.parse("workspaces = 6\n"), displays: 3) == [6, 6, 6])
+        #expect(counts(try Config.parse("workspaces = [7, 3]\n[display.3]\nworkspaces = 1\n"), displays: 3) == [7, 3, 1],
+                "a display table beats the list")
+        #expect(try Config.parse("workspaces = [5, 0]\n").workspaces == [5, 0])
+        for bad in ["workspaces = []\n", "workspaces = [0, 3]\n", "workspaces = [5, -1]\n"] {
+            assertError(bad, path: "workspaces", line: 1, contains: "at least 1 on the first display")
+        }
+        assertError("workspaces = ['five']\n", path: "workspaces", line: 1, contains: "a list of them")
     }
 
     @Test func patterns() {
@@ -75,6 +113,11 @@ struct GapsTests {
         #expect(MonitorPattern.name("built-in").matches(builtIn))
         #expect(MonitorPattern.name("dell").matches(dell), "case-insensitive substring")
         #expect(!MonitorPattern.name("built-in").matches(Monitor(name: "Apple Virtual Display", isMain: true, count: 1)))
+        #expect(MonitorPattern("2") == .number(2))
+        #expect(MonitorPattern("0") == .name("0"))
+        #expect(MonitorPattern.number(2).matches(Monitor(name: "x", isMain: false, count: 2, number: 2)))
+        #expect(!MonitorPattern.number(2).matches(Monitor(name: "DELL S2722QC", isMain: true, count: 2, number: 1)),
+                "a number is the display's place, not part of its name")
     }
 
     @Test func `Bad gaps fail`() {

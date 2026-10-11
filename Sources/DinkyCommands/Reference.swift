@@ -14,7 +14,8 @@ extension Command {
     public static let all: [Doc] = [
         Doc(syntax: "workspace <number|prev|next>",
             description: "Show a workspace (a native Space), numbered from 1 across displays, and focus its display. "
-                + "prev and next step through the focused display's workspaces."),
+                + "prev and next step through the focused display's workspaces, or from a Space that is none go to the "
+                + "nearest one that way."),
         Doc(syntax: "workspace-back-and-forth",
             description: "Switch to the workspace that was focused before the current one."),
         Doc(syntax: "move-window-to-workspace <number|prev|next> [--follow]",
@@ -31,8 +32,10 @@ extension Command {
         Doc(syntax: "focus-monitor <left|down|up|right|next|prev|N>",
             description: "Focus the display in a direction, the next or previous one, or display N as list-monitors numbers it: its most recently focused window, "
                 + "or the display itself when its workspace is empty, so workspace commands act on it."),
-        Doc(syntax: "move <left|down|up|right>",
-            description: "Move the focused window in a direction within the layout tree."),
+        Doc(syntax: "move <left|down|up|right> [--boundaries workspace|all-monitors-outer-frame]",
+            description: "Move the focused window in a direction within the layout tree. With --boundaries "
+                + "all-monitors-outer-frame, a window with nothing beyond it that way moves on to the display in that "
+                + "direction, at the near edge of its workspace, and keeps focus."),
         Doc(syntax: "join-with <left|down|up|right>",
             description: "Put the focused window and its neighbour in a new container."),
         Doc(syntax: "resize <smart|width|height> <+N|-N>",

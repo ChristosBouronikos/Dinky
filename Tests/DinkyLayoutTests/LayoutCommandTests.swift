@@ -158,3 +158,50 @@ struct MinimumSizeTests {
         #expect(accordion.minimumExtent(.horizontal, gap: 8, padding: 30, [2: CGSize(width: 400, height: 0)]) == 460)
     }
 }
+
+/// A window moved over from another display comes in at the edge facing that display.
+struct EnteringFromAnotherDisplayTests {
+    @Test func `Along the root it lands at the near edge`() {
+        var ws = workspace(2)
+        ws.insert(3, enteringFrom: .left)
+        #expect(shape(ws.root) == "h[3 1 2]")
+        #expect(ws.focused == 3)
+        var other = workspace(2)
+        other.insert(3, enteringFrom: .right)
+        #expect(shape(other.root) == "h[1 2 3]")
+    }
+
+    @Test func `Across the root it goes last`() {
+        var ws = workspace(2)
+        ws.insert(3, enteringFrom: .up)
+        #expect(shape(ws.root) == "h[1 2 3]")
+    }
+
+    @Test func `A lone window turns to meet it`() {
+        var ws = workspace(1)
+        ws.insert(2, enteringFrom: .up)
+        #expect(shape(ws.root) == "v[2 1]")
+        var empty = workspace(0)
+        empty.insert(1, enteringFrom: .right)
+        #expect(empty.windows == [1])
+        #expect(empty.focused == 1)
+    }
+
+    @Test func `The scrolling strip takes it as its first or last column`() {
+        var ws = workspace(2, algorithm: .scrolling)
+        ws.insert(3, enteringFrom: .left)
+        #expect(ws.windows == [3, 1, 2])
+        ws.insert(4, enteringFrom: .right)
+        #expect(ws.windows == [3, 1, 2, 4])
+        #expect(ws.focused == 4)
+    }
+
+    @Test func `A fixed template fills its next cell`() {
+        let fixed = TilingAlgorithm.fixed(rows: 1, columns: 3, expand: .columns)
+        var ws = workspace(1, algorithm: fixed)
+        var plain = ws
+        ws.insert(2, enteringFrom: .right)
+        plain.insert(2)
+        #expect(ws == plain)
+    }
+}

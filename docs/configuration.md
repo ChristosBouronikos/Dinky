@@ -24,7 +24,7 @@ permalink: /configuration/
 | Key | Default | |
 |---|---|---|
 | `start-at-login` | `true` | Register as a login item. |
-| `workspaces` | `5` | Workspaces across all displays, one native Space each. dinky creates and removes Spaces to match. |
+| `workspaces` | `[5, 4]` | Workspaces on each display, one native Space each: the first count on the leftmost display, the next on the second, and the last on every display after. One number puts that many on every display. Numbered across the displays left to right; see [Displays and workspaces](#displays-and-workspaces). dinky creates and removes Spaces to match. |
 | `default-layout` | `'tiles'` | `'tiles'` (the existing dwindle layout), `'dwindle'`, `'accordion'`, `'fixed'`, or `'scrolling'`. |
 | `default-tiling` | `true` | Set `false` to leave workspaces untiled unless overridden. |
 | `follow-app-activation` | `true` | Cmd-Tab and Dock clicks switch Spaces the fast way. Needs the macOS "switch to a Space with open windows" setting off. |
@@ -151,34 +151,76 @@ ctrl-alt-cmd-s = 'layout tiles accordion scrolling'
 
 </div>
 
+## Displays and workspaces
+
+Each display has its own workspaces, numbered on from display to display, left
+to right as `dinky list-displays` numbers the displays. `workspaces` sets how
+many: the first count for the leftmost display, the next for the second, and the
+last for every display after. The default, `[5, 4]`, gives the left display 1 to
+5, the next one 6 to 9 and a third 10 to 13.
+
+```toml
+workspaces = [7, 3]     # 7 on the left display (1 to 7), 3 on each one after (8 to 10, ...)
+workspaces = [5, 4, 2]  # 5, then 4, then 2 on the third display and on
+workspaces = 6          # 6 on every display
+```
+
+A `[display.<pattern>]` table gives one display its own count, whatever its
+place, such as `[display.built-in] workspaces = 3`.
+
+A display pattern is `main`, `secondary` (the other one, when there are two), a
+display number (`1` is the leftmost), or part of the display's name from `dinky
+list-displays`. When several tables match one display, names beat numbers,
+numbers beat `main` and `secondary`, and longer names beat shorter.
+
+When a display comes or goes, the numbers follow the displays. Plug a display in
+to the left of a laptop and it takes 1 to 5, with their windows and layouts,
+while the laptop goes on from 6. A display that goes away leaves its workspaces
+that still have windows on the main display, under the same numbers, until they
+are empty or the display is back. Windows macOS piles onto another workspace
+when a display goes away, as around sleep, go back to their own workspace once
+the displays settle. Empty leftover Spaces are removed; ones with windows are
+left alone, unnumbered. A display with `workspaces = 0` keeps one unnumbered
+Space.
+
+`workspace N` goes to whichever display has workspace N and focuses it;
+`workspace prev` and `next` stay on the focused display. To cross displays from
+the keyboard, give `focus` and `move` the outer frame of all displays as their
+boundary, so a window at the edge of its workspace takes focus, or moves, onto
+the display that way:
+
+```toml
+[mode.main]
+alt-h = 'focus --boundaries all-monitors-outer-frame left'
+alt-l = 'focus --boundaries all-monitors-outer-frame right'
+alt-shift-h = 'move --boundaries all-monitors-outer-frame left'
+alt-shift-l = 'move --boundaries all-monitors-outer-frame right'
+alt-shift-n = 'move-window-to-display next --follow'
+```
+
+`focus-monitor <left|right|up|down|next|prev|n>` focuses a display directly.
+
 ## `[workspace-to-display]`
 
-Which display a workspace lives on, by number. A display pattern is `main`,
-`secondary` (the other one, when there are two), or part of the name from
-`dinky list-displays`. A list tries each in turn. Unlisted workspaces, and
-listed ones whose display isn't connected, live on the main display.
+Moves a workspace from its own display to another while a display its patterns
+match is connected. A list tries each in turn.
 
 ```toml
 [workspace-to-display]
-5 = 'secondary'         # on the side display while it's connected, else a normal workspace
-4 = ['dell', 'lg']
+5 = 'secondary'         # on the side display while it's connected
+9 = ['dell', 'lg']
 ```
-
-When a display comes or goes, dinky moves the workspace's windows, layout
-included, to a Space on its display and removes the Space left behind. Empty
-leftover Spaces are removed; ones with windows are left alone, unnumbered. A
-display with no workspaces keeps one unnumbered Space. Windows macOS piles onto
-another workspace when a display goes away, as around sleep, go back to their
-own workspace once the displays settle.
 
 ## `[display.<pattern>]`
 
-Per-display `gaps`, with the patterns above. Name patterns beat
-`main`/`secondary`; longer names beat shorter.
+Per-display `workspaces` and `gaps`, with the patterns above.
 
 ```toml
 [display.main]          # the display with the bar
 gaps.outer.top = 44
+
+[display.built-in]
+workspaces = 3
 ```
 
 ## `[borders]`
@@ -330,7 +372,7 @@ The default `alt-` bindings take over Option-letter characters; set
 # Every key and command: https://dinky.rodeo/configuration/
 
 start-at-login = true
-workspaces = 5                  # across all displays, one native Space each
+workspaces = [5, 4]             # display 1 (leftmost), then 2 and each after; or one number for all
 default-layout = 'tiles'        # tiles (dwindle) | dwindle | accordion | fixed | scrolling
 default-tiling = true           # false leaves workspaces untiled unless overridden
 follow-app-activation = true    # Cmd-Tab and Dock clicks switch Spaces the fast way
@@ -357,14 +399,17 @@ column-width = 0.49             # a new column's share of the display; a lone co
 inner = 8                       # or { horizontal = 8, vertical = 8 }
 outer = 8                       # or { top = 8, bottom = 8, left = 8, right = 8 }
 
-# Display patterns: main, secondary, or part of a name as `dinky list-displays` prints it.
-# A workspace lives on the first display its patterns match, else on the main display.
-# [workspace-to-display]
-# 5 = 'secondary'
-
-# Overrides for one display.
+# Display patterns: main, secondary, a number (1 is the leftmost) or part of a name,
+# as `dinky list-displays` prints them.
+# Overrides for one display: its own workspace count, and gaps.
+# [display.built-in]
+# workspaces = 3
 # [display.main]
 # gaps.outer.top = 44
+
+# Move a workspace from its own display to another while that one is connected.
+# [workspace-to-display]
+# 5 = 'secondary'
 
 [borders]
 enabled = true

@@ -25,7 +25,8 @@ extension Display {
 extension DisplayModel {
     /// What `[display.<pattern>]` tables are matched against.
     func monitor(_ display: Display) -> Monitor {
-        Monitor(name: display.name, isMain: display.isMain, count: displays.count)
+        Monitor(name: display.name, isMain: display.isMain, count: displays.count,
+                number: (displays.firstIndex { $0.uuid == display.uuid } ?? -1) + 1)
     }
 }
 

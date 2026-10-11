@@ -34,6 +34,18 @@ struct FocusParseTests {
         #expect(error?.description.contains("all-monitors-outer-frame") == true, "\(error?.description ?? "")")
     }
 
+    @Test func `Move takes the boundaries flag in either order`() throws {
+        #expect(try parse("move left") == .move(.left, boundaries: .workspace))
+        #expect(try parse("move --boundaries all-monitors-outer-frame right") == .move(.right, boundaries: .allMonitorsOuterFrame))
+        #expect(try parse("move up --boundaries workspace") == .move(.up, boundaries: .workspace))
+    }
+
+    @Test(arguments: ["move", "move --boundaries left", "move left --boundaries screen", "move left right",
+                      "move left --boundaries-action fail", "move --boundaries all-monitors-outer-frame"])
+    func `Bad move flags`(s: String) {
+        #expect(throws: (any Error).self) { try parse(s) }
+    }
+
     @Test func `Focus monitor`() throws {
         for word in ["left", "right", "up", "down", "next", "prev"] {
             #expect(try parse("focus-monitor \(word)") == .focusMonitor(MonitorTarget(rawValue: word)!))

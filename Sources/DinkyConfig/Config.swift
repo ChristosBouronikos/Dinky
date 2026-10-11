@@ -7,10 +7,13 @@ import TOMLDecoder
 
 public struct Config: Equatable {
     public var startAtLogin = true
-    /// Workspaces across all displays, numbered from 1. Each is one native Space.
-    public var workspaces = 5
-    /// `[workspace-to-display]`: by workspace number, the display patterns it lives on, the first that matches
-    /// a connected display winning. Other workspaces, and these when no pattern matches, live on the main display.
+    /// Workspaces on each display by its number from the left: the first count for display 1, the next for display
+    /// 2, and the last for every display after, unless a `[display.<pattern>]` table gives the display its own. A
+    /// single number in the file is that count on every display. Each workspace is one native Space; they are
+    /// numbered from 1 across the displays, left to right (`WorkspacePlan.homes`).
+    public var workspaces = [5, 4]
+    /// `[workspace-to-display]`: by workspace number, the display patterns it moves to from its own display, the
+    /// first that matches a connected display winning.
     public var workspaceDisplays: [Int: [MonitorPattern]] = [:]
     /// Workspace layout, with 'tiles' retained as the old name for dwindle.
     public var defaultLayout = LayoutKind.tiles
@@ -79,12 +82,14 @@ public struct Config: Equatable {
 
     init(_ t: Table) throws {
         startAtLogin = try t.bool("start-at-login") ?? startAtLogin
-        workspaces = try t.int("workspaces") ?? workspaces
-        guard workspaces >= 1 else { throw ConfigError(path: "workspaces", "must be at least 1") }
+        workspaces = try t.intOrInts("workspaces") ?? workspaces
+        guard let first = workspaces.first, first >= 1, workspaces.allSatisfy({ $0 >= 0 }) else {
+            throw ConfigError(path: "workspaces", "must be at least 1 on the first display and 0 or more on the rest")
+        }
         if let assignments = try t.table("workspace-to-display") {
             for key in assignments.keys {
-                guard let n = Int(key), (1...workspaces).contains(n) else {
-                    throw ConfigError(path: assignments.path(key), "'\(key)' is not a workspace number from 1 to \(workspaces)")
+                guard let n = Int(key), n >= 1 else {
+                    throw ConfigError(path: assignments.path(key), "'\(key)' is not a workspace number")
                 }
                 let patterns = try assignments.stringOrStrings(key)!
                 guard !patterns.isEmpty, !patterns.contains("") else {

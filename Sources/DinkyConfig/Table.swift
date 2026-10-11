@@ -66,6 +66,18 @@ final class Table {
         return strings
     }
 
+    /// An integer or a list of them, e.g. workspace counts by display.
+    func intOrInts(_ key: String) throws -> [Int]? {
+        guard use(key) else { return nil }
+        if let one = try? table.integer(forKey: key) { return [Int(one)] }
+        let wrong = ConfigError(path: path(key), "expected an integer or a list of them")
+        guard let array = try? table.array(forKey: key) else { throw wrong }
+        return try (0..<array.count).map { index in
+            guard let value = try? array.integer(atIndex: index) else { throw wrong }
+            return Int(value)
+        }
+    }
+
     func table(_ key: String) throws -> Table? {
         guard use(key) else { return nil }
         guard let nested = try? table.table(forKey: key) else { throw ConfigError(path: path(key), "expected a table") }

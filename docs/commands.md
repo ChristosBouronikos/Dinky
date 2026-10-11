@@ -14,13 +14,13 @@ prints it.
 
 | Command | |
 |---|---|
-| `workspace <n\|prev\|next>` | Show a workspace and focus its display. `prev`/`next` step through the focused display's and don't wrap. |
+| `workspace <n\|prev\|next>` | Show a workspace and focus its display. `prev`/`next` step through the focused display's and don't wrap; from a Space that isn't a workspace they go to the nearest one that way. |
 | `workspace-back-and-forth` | Switch to the previous workspace. |
 | `move-window-to-workspace <n\|prev\|next> [--follow]` | Move the focused window, and with `--follow` go too. |
 | `move-window-to-display <next\|prev> [--follow]` | Move the focused window to another display's workspace. |
 | `focus <left\|down\|up\|right> [--boundaries <b>] [--boundaries-action <a>]` | Focus the nearest window. `--boundaries` is `workspace` (default) or `all-monitors-outer-frame`, which continues onto the next display. `--boundaries-action` is `stop` (default), `fail`, `wrap-around-the-workspace` (`--wrap-around`) or `wrap-around-all-monitors`, which needs `all-monitors-outer-frame`. |
 | `focus-monitor <left\|down\|up\|right\|next\|prev\|n>` | Focus a display. |
-| `move <left\|down\|up\|right>` | Move the focused window in the tree. |
+| `move <left\|down\|up\|right> [--boundaries <b>]` | Move the focused window in the tree. With `--boundaries all-monitors-outer-frame`, a window at the edge moves on to the display that way and keeps focus. |
 | `join-with <left\|down\|up\|right>` | Put the focused window and its neighbour in a new container. |
 | `resize <smart\|width\|height> <+n\|-n>` | Resize by n points. |
 | `layout <tiles\|accordion\|horizontal\|vertical\|auto\|h_tiles\|v_tiles\|h_accordion\|v_accordion\|floating\|tiling\|scrolling>...` | Set the container's layout, float/tile the window, or switch the workspace to [scrolling](configuration.md#scrolling); a container layout switches it back. Given several, applies the one after the current one, so `layout floating tiling` toggles and `layout tiles accordion scrolling` cycles. Acts on the focused window, tiling it first if it floats, so it does nothing on an empty workspace. |
@@ -38,9 +38,11 @@ prints it.
 
 </div>
 
-Workspaces are numbered across displays; see
-[`[workspace-to-display]`](configuration.md#workspace-to-display). A full-screen
-app's Space has no number, nor does the Space of a display without workspaces.
+Each display has its own workspaces, numbered on from display to display left
+to right, as `list-monitors` numbers the displays: by default 1 to 5 on the
+first, 6 to 9 on the second and 10 to 13 on a third. See [Displays and
+workspaces](configuration.md#displays-and-workspaces). A full-screen app's Space
+has no number, nor does a Space left over with windows.
 
 ## Command line
 

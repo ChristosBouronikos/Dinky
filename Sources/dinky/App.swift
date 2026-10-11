@@ -93,9 +93,9 @@ final class DinkyApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let state = AppState.shared
         let mode = state.hotkeys.currentMode
         bindings = MenuBindings(state.config.modes[mode])
-        let count = state.numbers.count
+        let numbers = state.numbers.all
         let current = state.displays.focusedDisplay().flatMap(state.numbers.current(on:))
-        menu.addItem(withTitle: "Workspace \(current.map { "\($0)" } ?? "?") of \(count)", action: nil, keyEquivalent: "")
+        menu.addItem(withTitle: "Workspace \(current.map { "\($0)" } ?? "?") of \(numbers.count)", action: nil, keyEquivalent: "")
         if mode != "main" {
             menu.addItem(withTitle: "Mode: \(mode)", action: nil, keyEquivalent: "")
         }
@@ -110,7 +110,7 @@ final class DinkyApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let go = NSMenu()
         let moveTo = NSMenu()
         let moveFollow = NSMenu()
-        for n in 1...max(count, 1) {
+        for n in numbers {
             let title = "Workspace \(n)" + (n == current ? " (current)" : "")
             go.addItem(item(title, "workspace \(n)", enabled: n != current))
             moveTo.addItem(item(title, "move-window-to-workspace \(n)", enabled: n != current))

@@ -85,6 +85,9 @@ settings dinky depends on.
 
 Turn off "Automatically rearrange Spaces based on most recent use" in the same
 place, or workspace numbers move around; `dinky doctor` warns while it's on.
+With more than one display, leave "Displays have separate Spaces" on (the
+default): without it macOS has one set of Spaces for every display and dinky
+only tiles the main one.
 
 Run one tiling window manager at a time. With AeroSpace, Amethyst, yabai or
 KiwiDesk also running, each undoes the other's layouts; dinky shows a `!` in the

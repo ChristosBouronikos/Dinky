@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+**Upgrading:** `workspaces` now counts the workspaces on each display, not the total, and takes a list by display from the left: the default `[5, 4]` gives the left display 1 to 5 and each display after four more (6 to 9, then 10 to 13). `workspaces = [7, 3]` gives 7 and then 3 each; a single number, such as the old default `5`, gives that many on every display.
+
+### Displays
+
+- Each display has its own workspaces, numbered on from display to display, left to right. Set the counts with `workspaces = [7, 3]`, or for one display with `workspaces` in a `[display.<pattern>]` table, by name or by number (`[display.2]`). Before, every workspace lived on the main display unless `[workspace-to-display]` moved it, and another display had only an unnumbered Space that workspace commands and the menu bar ignored.
+- A display that goes away leaves its workspaces that still have windows on the main display under the same numbers, and they go back when it returns. Before, they lost their numbers.
+- Display patterns take a display number, as `list-monitors` prints it: `[display.2]`, or `9 = '2'` in `[workspace-to-display]`, which now moves a workspace from its own display to another.
+- Displays are numbered left to right everywhere: `list-monitors`, `focus-monitor N`, `move-window-to-display next`, `$DINKY_DISPLAY` and which display gets which workspace. Before, some followed WindowServer's order and `focus-monitor next` followed the screen.
+- `move --boundaries all-monitors-outer-frame left` moves a window at the edge of its workspace on to the display that way, at the near edge of that display's workspace, and focus goes with it, as in AeroSpace.
+- `workspace next` and `prev` work from a Space that isn't a workspace, such as a full-screen app's or one left over with windows: they go to the nearest workspace that way. Before, they did nothing there.
+- `focus left` and the like on a floating window look at the windows of its display. Before, they looked at the main display's windows, whichever display had focus.
+- `dinky doctor` warns when "Displays have separate Spaces" is off, which leaves dinky tiling only the main display.
+
 ## 0.18
 
 ### Key bindings

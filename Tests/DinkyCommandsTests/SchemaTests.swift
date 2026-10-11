@@ -80,6 +80,7 @@ struct SchemaTests {
         outer.right = 4
 
         [display.main]
+        workspaces = 4
         gaps.inner = 2
         gaps.outer.top = 30
         gaps.outer.bottom = 0
@@ -87,6 +88,7 @@ struct SchemaTests {
         gaps.outer.right = 0
 
         [display.secondary]
+        workspaces = 0
         gaps.inner.horizontal = 1
         gaps.inner.vertical = 1
         gaps.outer = 8

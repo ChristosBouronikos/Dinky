@@ -7,7 +7,7 @@ struct ConfigTests {
         let config = try Config.parse(Config.defaultTOML)
         #expect(config == Config.default)
         #expect(config.startAtLogin)
-        #expect(config.workspaces == 5)
+        #expect(config.workspaces == [5, 4])
         #expect(config.defaultLayout == .tiles)
         #expect(config.defaultTiling)
         #expect(config.followAppActivation)
@@ -56,7 +56,7 @@ struct ConfigTests {
         float-windows-without-fullscreen = false
         """)
         #expect(!config.startAtLogin)
-        #expect(config.workspaces == 3)
+        #expect(config.workspaces == [3])
         #expect(config.defaultLayout == .accordion)
         #expect(!config.followAppActivation)
         #expect(!config.floatWindowsWithoutFullscreen)

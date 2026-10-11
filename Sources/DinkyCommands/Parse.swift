@@ -59,7 +59,7 @@ extension Command {
             if let n = one.flatMap({ Int($0) }) { return n >= 1 ? .focusMonitorNumber(n) : nil }
             return one.flatMap(MonitorTarget.init(rawValue:)).map { .focusMonitor($0) }
         case "move":
-            return one.flatMap(Direction.init).map { .move($0) }
+            return move(args)
         case "join-with":
             return one.flatMap(Direction.init).map { .joinWith($0) }
         case "resize":
@@ -168,6 +168,21 @@ extension Command {
             throw CommandError(input: "", message: "wrap-around-all-monitors needs --boundaries all-monitors-outer-frame")
         }
         return .focus(direction, boundaries: boundaries, action: action)
+    }
+
+    /// `move <direction>` with AeroSpace's `--boundaries`, in either order.
+    private static func move(_ args: [String]) -> Command? {
+        var rest = args[...], direction: Direction?, boundaries = FocusBoundaries.workspace
+        while let word = rest.popFirst() {
+            if word == "--boundaries" {
+                guard let value = rest.popFirst().flatMap(FocusBoundaries.init(rawValue:)) else { return nil }
+                boundaries = value
+            } else {
+                guard direction == nil, let value = Direction(word) else { return nil }
+                direction = value
+            }
+        }
+        return direction.map { .move($0, boundaries: boundaries) }
     }
 
     private static func followFlag(_ args: [String]) -> (rest: [String], follow: Bool) {

@@ -24,7 +24,8 @@ func runDoctor(_ args: [String]) -> Int32 {
     } else {
         do {
             config = try Config.load(from: url)
-            ok("parses: \(config.workspaces) workspaces, \(config.modes.count) modes, \(config.rules.count) window rules")
+            let counts = config.workspaces.map(String.init).joined(separator: ", ")
+            ok("parses: workspaces \(counts) by display, \(config.modes.count) modes, \(config.rules.count) window rules")
         } catch {
             fail("\(error)")
         }
@@ -47,12 +48,27 @@ func runDoctor(_ args: [String]) -> Int32 {
         }
     }
 
-    // Where the workspaces go with the displays connected now; the app arranges the Spaces to match.
-    let connected = dinky_displays()
-    let displays = connected.map { d in
-        PlanDisplay(uuid: d.uuid, monitor: Monitor(name: screen(of: d.displayID)?.localizedName ?? "",
-                                                   isMain: CGDisplayIsMain(d.displayID) != 0, count: connected.count),
-                    spaces: d.spaces.filter(\.isUser).map(\.spaceID), current: d.currentSpaceID)
+    // With it off, WindowServer has one set of Spaces spanning every display, listed as the main display alone,
+    // so dinky would tile the windows of every display onto the main one.
+    if NSScreen.screens.count > 1 {
+        if spacesSetting("spans-displays") ?? false {
+            warn("\"Displays have separate Spaces\" is off; dinky only tiles the main display without it. Turn it on in System Settings > Desktop & Dock, then log out and back in")
+        } else {
+            ok("each display has its own Spaces")
+        }
+    }
+
+    // Where the workspaces go with the displays connected now, numbered left to right as the app numbers them;
+    // the app arranges the Spaces to match.
+    let connected = dinky_displays().sorted { a, b in
+        let (p, q) = (CGDisplayBounds(a.displayID), CGDisplayBounds(b.displayID))
+        return (p.minX, p.minY) < (q.minX, q.minY)
+    }
+    let displays = connected.enumerated().map { i, d in
+        let monitor = Monitor(name: screen(of: d.displayID)?.localizedName ?? "", isMain: CGDisplayIsMain(d.displayID) != 0,
+                              count: connected.count, number: i + 1)
+        return PlanDisplay(uuid: d.uuid, monitor: monitor, spaces: d.spaces.filter(\.isUser).map(\.spaceID),
+                           current: d.currentSpaceID, workspaces: config.workspaces(for: monitor))
     }
     let homes = WorkspacePlan(config).homes(displays)
     for (i, display) in displays.enumerated() {
@@ -80,4 +96,9 @@ func runDoctor(_ args: [String]) -> Int32 {
 /// A boolean Dock setting, nil when unset.
 func dockSetting(_ key: String) -> Bool? {
     CFPreferencesCopyAppValue(key as CFString, "com.apple.dock" as CFString) as? Bool
+}
+
+/// A boolean Spaces setting, nil when unset.
+private func spacesSetting(_ key: String) -> Bool? {
+    CFPreferencesCopyAppValue(key as CFString, "com.apple.spaces" as CFString) as? Bool
 }

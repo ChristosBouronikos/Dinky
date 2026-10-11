@@ -103,6 +103,25 @@ public struct Workspace: Equatable, Sendable {
         focus(id)
     }
 
+    /// Insert a window coming in by the `side` edge, as one moved over from the display beyond it, and focus it.
+    /// It becomes the first or last child of the root when the root runs across that edge, else the last, as
+    /// AeroSpace's move-node-to-monitor binds it; the scrolling strip takes it as its first or last column.
+    /// Fixed templates place it as `insert` does.
+    public mutating func insert(_ id: WindowID, enteringFrom side: Direction) {
+        guard !contains(id) else { return }
+        if case .fixed = algorithm { return insert(id) }
+        if isScrolling {
+            guard side.orientation == .horizontal else { return insert(id) }
+            root.insert(.window(id), at: side == .left ? 0 : root.children.count)
+            columnWidths[id] = columnWidth
+            return focus(id)
+        }
+        if root.children.count <= 1, root.orientation != .auto { root.orientation = ContainerOrientation(side.orientation) }
+        let across = axisOfContainer(at: []) == side.orientation
+        root.insert(.window(id), at: across && !side.isForward ? 0 : root.children.count)
+        focus(id)
+    }
+
     /// Remove a window. Its share goes to its siblings, redundant containers collapse.
     /// If it was focused, focus moves to the window that took its place.
     public mutating func remove(_ id: WindowID) {
