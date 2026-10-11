@@ -123,7 +123,9 @@ enum Dispatcher {
         model.reconcile()
         switch target {
         case .number(let n):
-            guard numbers.space(of: n) != nil else { throw Refusal("no workspace \(n), there are \(numbers.all.count)") }
+            guard numbers.space(of: n) != nil else {
+                throw Refusal("no workspace \(n); there are \(numbers.all.map(String.init).joined(separator: ", "))")
+            }
             return n
         case .prev, .next:
             guard let display = model.focusedDisplay() else { throw Refusal("no display") }
@@ -214,6 +216,7 @@ enum Dispatcher {
     /// display shows a full-screen app.
     private static func move(_ direction: Direction, boundaries: FocusBoundaries) -> Reply {
         if boundaries == .allMonitorsOuterFrame, let coordinator = AppState.shared.coordinator {
+            AppState.shared.displays.reconcile()
             let id = coordinator.focusedWindow
             if coordinator.isAtEdge(id, direction) == true, let from = AppState.shared.displays.display(ofWindow: id),
                let to = display(beyond: from, direction), to.userSpaces.contains(to.currentSpaceID) {

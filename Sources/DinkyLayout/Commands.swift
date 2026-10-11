@@ -27,6 +27,21 @@ extension Workspace {
         return candidates.min { $0.distance < $1.distance }?.id
     }
 
+    /// Whether a window sits at the workspace's edge in `direction`: nothing beyond it that way, and its tile reaches
+    /// that edge, so a move that way has nowhere left to go in this workspace (an empty fixed cell is somewhere).
+    /// The scrolling strip's first and last columns are at its edges wherever it is scrolled.
+    public func isAtEdge(_ id: WindowID, _ direction: Direction) -> Bool {
+        guard neighbor(of: id, direction) == nil, let frame = tiledLayout().frames[id] else { return false }
+        if isScrolling { return true }
+        let area = gaps.inset(bounds)
+        return switch direction {
+        case .left: frame.minX <= area.minX + 1
+        case .right: frame.maxX >= area.maxX - 1
+        case .up: frame.minY <= area.minY + 1
+        case .down: frame.maxY >= area.maxY - 1
+        }
+    }
+
     /// Swap two windows' places in the tree, keeping both tiles' sizes. Focus stays where it was.
     @discardableResult
     public mutating func swap(_ first: WindowID, _ second: WindowID) -> Bool {

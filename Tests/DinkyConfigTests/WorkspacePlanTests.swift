@@ -197,6 +197,17 @@ struct WorkspacePlanTests {
         #expect(world.numbers(on: "L") == [1, 2, 3])
     }
 
+    @Test func `A lower count keeps a workspace with windows on its own display`() {
+        var world = World(displays: Self.docked(laptop: [1, 2, 3, 4], dell: [11, 12, 13, 14, 15]))
+        world.windows = [3: 1, 4: 2]  // workspaces 8 and 9, on the laptop
+        world.settle()
+        world.actions = []
+        world.displays[1].workspaces = 2
+        world.settle()
+        #expect(world.numbers(on: "L") == [6, 7, 8, 9], "nothing moves to the DELL")
+        #expect(world.actions == [])
+    }
+
     @Test func `Stale and duplicate bindings are dropped`() {
         let displays = [Self.display("L", "Built-in", main: true, workspaces: 2, [1, 2])]
         let step = WorkspacePlan().step(displays, binding: [1: 2, 2: 2, 7: 1, 3: 99], occupied: [])

@@ -205,3 +205,18 @@ struct EnteringFromAnotherDisplayTests {
         #expect(ws == plain)
     }
 }
+
+/// Where `move --boundaries all-monitors-outer-frame` leaves the workspace for the next display.
+struct WorkspaceEdgeTests {
+    @Test func `A window with a neighbour or an empty cell that way is not at the edge`() {
+        let ws = workspace(3)  // h[1 v[2 3]]
+        #expect(!ws.isAtEdge(1, .right))
+        #expect(ws.isAtEdge(1, .left))
+        #expect(ws.isAtEdge(2, .right))
+        #expect(ws.isAtEdge(2, .up))
+        #expect(!ws.isAtEdge(2, .down))
+        let fixed = workspace(1, algorithm: .fixed(rows: 2, columns: 2, expand: .columns))
+        #expect(!fixed.isAtEdge(1, .right), "the empty cell to its right is somewhere to move")
+        #expect(fixed.isAtEdge(1, .left))
+    }
+}

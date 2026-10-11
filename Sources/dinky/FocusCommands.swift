@@ -17,10 +17,11 @@ extension Dispatcher {
         if let id = found { return focus(window: id) }
         let model = AppState.shared.displays
         if boundaries == .allMonitorsOuterFrame, let from = model.display(ofWindow: coordinator.focusedWindow) {
-            let line = displays(inLineWith: from, direction.orientation, model.displays)
-            let index = line.firstIndex(of: from)! + (direction.isForward ? 1 : -1)
-            if line.indices.contains(index) { return enter(line[index], from: direction) }
-            if action == .wrapAroundAllMonitors { return enter(direction.isForward ? line[0] : line[line.count - 1], from: direction) }
+            if let next = display(beyond: from, direction) { return enter(next, from: direction) }
+            if action == .wrapAroundAllMonitors {
+                let line = displays(inLineWith: from, direction.orientation, model.displays)
+                return enter(direction.isForward ? line[0] : line[line.count - 1], from: direction)
+            }
         }
         switch action {
         case .stop, .wrapAroundAllMonitors:

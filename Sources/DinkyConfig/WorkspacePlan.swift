@@ -55,8 +55,9 @@ public struct WorkspacePlan {
     /// The display each workspace lives on. Each display has a run of numbers as long as its `workspaces`, the
     /// displays taking theirs in `displays` order, left to right: with five each, 1 to 5 on the first and 6 to 10 on
     /// the second. `[workspace-to-display]` moves one of them to the first connected display its patterns match.
-    /// `leftBehind` are workspaces past those, left by a display that went away; they live on the main display.
-    public func homes(_ displays: [PlanDisplay], leftBehind: [Int] = []) -> [Int: String] {
+    /// `leftBehind` are workspaces past those, kept for their windows, by the Space each is on: one left by a
+    /// display that went away lives on the main display, one left by a lower count stays on its display.
+    public func homes(_ displays: [PlanDisplay], leftBehind: [Int: UInt64] = [:]) -> [Int: String] {
         var homes: [Int: String] = [:]
         var n = 1
         for display in displays {
@@ -71,7 +72,9 @@ public struct WorkspacePlan {
             }
         }
         if let main = displays.first(where: \.monitor.isMain) ?? displays.first {
-            for n in leftBehind where homes[n] == nil { homes[n] = main.uuid }
+            for (n, space) in leftBehind where homes[n] == nil {
+                homes[n] = (displays.first { $0.spaces.contains(space) } ?? main).uuid
+            }
         }
         return homes
     }
@@ -91,7 +94,7 @@ public struct WorkspacePlan {
         for n in binding.keys.sorted() where binding.contains(where: { $0.key < n && $0.value == binding[n] }) {
             binding[n] = nil
         }
-        let homes = homes(displays, leftBehind: binding.keys.filter { $0 > total })
+        let homes = homes(displays, leftBehind: binding.filter { $0.key > total })
 
         for display in displays {
             var last = -1  // position of the previous workspace's Space on this display

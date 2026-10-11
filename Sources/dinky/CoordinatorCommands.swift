@@ -6,9 +6,10 @@ extension Coordinator {
     /// Whether dinky floats the window; nil for a window it has not classified.
     func isFloating(_ id: WindowID) -> Bool? { placements[id]?.floating }
 
-    /// Whether a tiled window has no window beyond it in `direction` in its tree. Nil for a window that is not tiled.
+    /// Whether a tiled window is at its workspace's edge in `direction` (`Workspace.isAtEdge`). Nil for a window that
+    /// is not tiled.
     func isAtEdge(_ id: WindowID, _ direction: Direction) -> Bool? {
-        placements[id]?.space.flatMap { workspaces[$0] }.map { $0.neighbor(of: id, direction) == nil }
+        placements[id]?.space.flatMap { workspaces[$0] }.map { $0.isAtEdge(id, direction) }
     }
 
     /// The tree of the display's current Space, if dinky has one.
