@@ -8,6 +8,10 @@ public enum Command: Equatable, Sendable {
     case workspaceBackAndForth
     case moveWindowToWorkspace(WorkspaceTarget, follow: Bool)
     case moveWindowToDisplay(DisplayTarget, follow: Bool)
+    /// Float the window and hide it in the scratchpad.
+    case moveWindowToScratchpad
+    /// Show the scratchpad's windows over the focused workspace, or hide them.
+    case scratchpad(ScratchpadAction)
     /// Focus the neighbour in a direction. `boundaries` says where the search stops, `action` what happens there.
     case focus(Direction, boundaries: FocusBoundaries = .workspace, action: BoundariesAction = .stop)
     case focusMonitor(MonitorTarget)
@@ -20,6 +24,8 @@ public enum Command: Equatable, Sendable {
     /// so `layout floating tiling` and `layout horizontal vertical` toggle between the two.
     case layout([LayoutName])
     case fullscreen
+    /// Close the window, as its close button would.
+    case close
     case flattenWorkspaceTree
     case balanceSizes
     case retile
@@ -46,6 +52,12 @@ public enum WorkspaceTarget: Equatable, Sendable {
 
 public enum DisplayTarget: String, Equatable, Sendable {
     case prev, next
+}
+
+/// What `scratchpad` does: show its windows, hide them, or hide them when they show on the focused workspace
+/// and show them otherwise.
+public enum ScratchpadAction: String, Equatable, Sendable {
+    case toggle, show, hide
 }
 
 /// Where `focus` looks: the focused workspace's tree, or on across displays up to their outer frame.

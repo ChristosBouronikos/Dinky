@@ -69,8 +69,15 @@ public struct WorkspacePlan {
     /// Space after the previous one's (a new Space when there is none), moving its windows along when it
     /// changes Space; windows only ever go to an empty Space, so two sets never mix. Then empty Spaces no
     /// workspace is on are removed; one is kept on a display with no workspace, which macOS requires anyway.
-    /// A leftover Space with windows is left alone.
-    public func step(_ displays: [PlanDisplay], binding: [Int: UInt64], occupied: Set<UInt64>) -> PlanStep {
+    /// A leftover Space with windows is left alone, and so is every `reserved` one: the plan never binds,
+    /// fills or removes it, as if it were not there.
+    public func step(_ displays: [PlanDisplay], binding: [Int: UInt64], occupied: Set<UInt64>,
+                     reserved: Set<UInt64> = []) -> PlanStep {
+        let displays = displays.map { display in
+            var display = display
+            display.spaces.removeAll(where: reserved.contains)
+            return display
+        }
         let all = Set(displays.flatMap(\.spaces))
         // Forget Spaces that are gone and workspaces past the count; one workspace per Space.
         var binding = binding.filter { n, space in numbers.contains(n) && all.contains(space) }

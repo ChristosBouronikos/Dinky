@@ -21,6 +21,14 @@ extension Command {
             description: "Move the focused window to a workspace. With --follow, switch there too."),
         Doc(syntax: "move-window-to-display <next|prev> [--follow]",
             description: "Move the focused window to the next or previous display's current workspace. With --follow, focus it there."),
+        Doc(syntax: "move-window-to-scratchpad",
+            description: "Float the focused window and hide it in the scratchpad: a Space of its own that no workspace number "
+                + "names. scratchpad brings it back."),
+        Doc(syntax: "scratchpad [toggle|show|hide]",
+            description: "Show the scratchpad's windows floating over the focused workspace, laid out together in the middle "
+                + "of its display, or hide them again. toggle, the default, hides them when they show on the focused workspace "
+                + "and otherwise shows them, bringing them from wherever they were left. Tiling a scratchpad window or moving "
+                + "it to a workspace takes it out of the scratchpad."),
         Doc(syntax: "focus <left|down|up|right> [--boundaries workspace|all-monitors-outer-frame] "
                 + "[--boundaries-action stop|fail|wrap-around-the-workspace|wrap-around-all-monitors]",
             description: "Focus the neighbouring window in a direction in the layout tree. At the workspace edge, "
@@ -46,6 +54,8 @@ extension Command {
                 + "An auto container counts as the orientation it follows now."),
         Doc(syntax: "fullscreen",
             description: "Toggle the focused window filling the workspace. The tree is kept."),
+        Doc(syntax: "close",
+            description: "Close the focused window, as its close button would. The app may ask to save first."),
         Doc(syntax: "flatten-workspace-tree",
             description: "Put every window on the workspace back into its layout, in order, undoing tree edits. A scrolling workspace keeps its column widths."),
         Doc(syntax: "balance-sizes",

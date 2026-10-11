@@ -30,11 +30,27 @@ extension Coordinator {
         }
     }
 
-    private func dropped(_ id: WindowID) {
-        guard let key = placements[id]?.space, let layout = workspaces[key]?.layout(), let window = model.windows[id],
-              let expected = layout.frames[id], !window.frame.isClose(to: expected, within: 2) else { return }
-        if let edges = movedEdges(from: expected, to: window.frame) {
-            edit(key) { $0.resize(id, to: window.frame.size, moving: edges) }
+    /// A tiled window dinky drags itself, with a modifier and the mouse (Mouse.swift): a drag from now on.
+    func beginMouseDrag(_ id: WindowID) {
+        guard dragging == nil, placements[id]?.space != nil else { return }
+        dragging = id
+        showPlaceholders()
+    }
+
+    /// Drops a window dinky dragged itself, at `frame`, the last it wrote: its events may still be on their way.
+    func endMouseDrag(_ id: WindowID, at frame: CGRect) {
+        guard dragging == id else { return }
+        dragging = nil
+        placeholders.hide()
+        dropped(id, at: frame)
+    }
+
+    private func dropped(_ id: WindowID, at frame: CGRect? = nil) {
+        guard let key = placements[id]?.space, let layout = workspaces[key]?.layout(),
+              let frame = frame ?? model.windows[id]?.frame,
+              let expected = layout.frames[id], !frame.isClose(to: expected, within: 2) else { return }
+        if let edges = movedEdges(from: expected, to: frame) {
+            edit(key) { $0.resize(id, to: frame.size, moving: edges) }
         } else if let target = dropTarget(of: id, in: layout) {
             edit(key) { $0.swap(id, target) }
         }

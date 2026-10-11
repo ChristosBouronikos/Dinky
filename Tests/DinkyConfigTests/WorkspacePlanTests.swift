@@ -9,11 +9,13 @@ struct WorkspacePlanTests {
         var binding: [Int: UInt64] = [:]
         var nextSpace: UInt64 = 1000
         var actions: [PlanAction] = []
+        var reserved: Set<UInt64> = []
 
         /// Steps until the plan is done, applying each action as WindowServer would.
         mutating func settle(_ plan: WorkspacePlan, limit: Int = 50) {
             for _ in 0..<limit {
-                let step = plan.step(displays, binding: binding, occupied: Set(windows.filter { $0.value > 0 }.keys))
+                let step = plan.step(displays, binding: binding, occupied: Set(windows.filter { $0.value > 0 }.keys),
+                                     reserved: reserved)
                 binding = step.binding
                 guard let action = step.action else { return }
                 actions.append(action)
@@ -52,6 +54,20 @@ struct WorkspacePlanTests {
         #expect(world.numbers(on: "L") == [1, 2, 3, 4, 5])
         #expect(world.binding[1] == 1)
         #expect(world.binding[3] == 3)
+    }
+
+    @Test func `A reserved Space is never bound or removed`() {
+        // The scratchpad's Space, empty while its windows show, sits between workspaces' Spaces.
+        var world = World(displays: [Self.display("L", "Built-in", main: true, count: 1, [1, 2, 9, 3])])
+        world.reserved = [9]
+        world.settle(WorkspacePlan(count: 4, assignments: [:]))
+        #expect(world.spaces("L") == [1, 2, 9, 3, 1000])
+        #expect(world.numbers(on: "L") == [1, 2, 3, 4])
+        #expect(!world.binding.values.contains(9))
+        // Fewer workspaces remove their Spaces, not the reserved one.
+        world.settle(WorkspacePlan(count: 2, assignments: [:]))
+        #expect(world.spaces("L") == [1, 2, 9])
+        #expect(world.actions.allSatisfy { $0 != .remove(space: 9) })
     }
 
     @Test func `Docking moves the assigned workspace and removes its old Space`() {

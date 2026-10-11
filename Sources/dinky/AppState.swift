@@ -32,8 +32,11 @@ final class AppState {
     private(set) var coordinator: Coordinator?
     /// The journal of original frames that disable, quit and `dinky recover` restore.
     let recovery = Recovery()
+    /// Windows hidden on a Space of their own until `scratchpad` shows them.
+    let scratchpad = ScratchpadManager()
     private let hooks = Hooks()
     private let hoverFocus = HoverFocus()
+    private let mouse = MouseActions()
     private var watcher: ConfigWatcher?
 
     private init() {
@@ -66,6 +69,7 @@ final class AppState {
         hooks.start()
         recovery.start(model: coordinator.model, applier: coordinator.applier)
         hoverFocus.update(config: config.focusFollowsMouse)
+        mouse.update(config: config)
     }
 
     /// The one enable transition. Off stops tiling and puts every window back where it was before dinky
@@ -76,7 +80,14 @@ final class AppState {
         if on { recovery.resume() }
         enabled = on
         propagateEnabled()
-        return on ? "" : recovery.restore()
+        guard !on else { return "" }
+        // Restoring brings the scratchpad's windows back too; its Space, empty now, goes at the next arrangement.
+        let summary = recovery.restore()
+        if scratchpad.space != nil {
+            scratchpad.reset()
+            numbers.arrangeSoon()
+        }
+        return summary
     }
 
     /// `dinky recover` and the menu's restore item: after a crash, stops tiling and restores every
@@ -102,6 +113,7 @@ final class AppState {
                 coordinator.update(config: config)
                 numbers.arrange()
                 hoverFocus.update(config: config.focusFollowsMouse)
+                mouse.update(config: config)
             }
             applyStartAtLogin(config.startAtLogin)
         case .failure(let error):
@@ -117,5 +129,6 @@ final class AppState {
     private func propagateEnabled() {
         hotkeys.enabled = enabled
         coordinator?.enabled = enabled
+        mouse.setEnabled(enabled)
     }
 }

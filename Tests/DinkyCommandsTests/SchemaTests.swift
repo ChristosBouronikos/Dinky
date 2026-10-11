@@ -35,11 +35,11 @@ struct SchemaTests {
         let pattern = definitions["keyCombo"]!["pattern"] as! String
         let regex = try NSRegularExpression(pattern: pattern)
         func matches(_ text: String) -> Bool { regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil }
-        for name in KeyCombo.keyCodes.keys {
+        for name in Array(KeyCombo.keyCodes.keys) + Array(KeyCombo.mouseButtons.keys) {
             #expect(matches(name), "\(name)")
             #expect(matches("alt-shift-\(name)"), "\(name)")
         }
-        for bad in ["", "alt-", "hyper-a", "alt-hh", "pageUp", "f21", "keypad-", "alt--", "A"] {
+        for bad in ["", "alt-", "hyper-a", "alt-hh", "pageUp", "f21", "keypad-", "alt--", "A", "mouse-6", "alt-mouse"] {
             #expect(!matches(bad), "\(bad)")
         }
     }
@@ -111,6 +111,15 @@ struct SchemaTests {
         [drag]
         placeholders = false
 
+        [mouse]
+        move = 'ctrl-alt'
+        resize = ''
+
+        [scratchpad]
+        width = 0.6
+        height = 0.7
+        slide = 'bottom'
+
         [modifiers]
         alt = 'left'
         ctrl = 'right'
@@ -134,6 +143,7 @@ struct SchemaTests {
         [mode.main]
         alt-1 = 'workspace 1'
         alt-r = 'mode resize'
+        alt-mouse-middle = 'close'
 
         [mode.resize]
         esc = ['mode main']

@@ -67,11 +67,12 @@ extension Coordinator {
     }
 
     /// Floats a tiled window where it stands, or tiles a floating one beside the focused tile of its Space.
-    /// A window held as a possible tab is released, so it cannot take over a tile once floated.
-    /// False for a window dinky has not classified.
+    /// A window held as a possible tab is released, so it cannot take over a tile once floated. A tiled window
+    /// leaves the scratchpad. False for a window dinky has not classified.
     @discardableResult
     func setFloating(_ id: WindowID, _ floating: Bool) -> Bool {
         guard let placement = placements[id], let window = model.windows[id] else { return false }
+        if !floating { AppState.shared.scratchpad.forget(id) }
         if let space = placement.space { edit(space) { $0.remove(id) } }
         heldTabs[id] = nil
         placements[id] = Placement(floating: floating, space: nil)

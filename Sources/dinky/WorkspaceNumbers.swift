@@ -104,7 +104,8 @@ final class WorkspaceNumbers {
             guard !displays.isEmpty else { break }
             let occupied = occupiedSpaces(among: displays.flatMap(\.spaces))
             let before = binding
-            let step = plan.step(displays, binding: binding, occupied: occupied)
+            let reserved = Set([AppState.shared.scratchpad.space].compactMap { $0 })
+            let step = plan.step(displays, binding: binding, occupied: occupied, reserved: reserved)
             binding = step.binding
             guard let action = step.action else {
                 completed = true

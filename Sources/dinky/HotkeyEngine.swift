@@ -9,7 +9,13 @@ final class HotkeyEngine {
     private let onCommands: ([String]) -> Void
     private var modes: [String: [KeyPress: [String]]] = [:]
     private var sides = ModifierSides()
-    private(set) var currentMode = "main"
+    private let modeLock = NSLock()
+    private var mode = "main"
+    /// Readable from any thread: the mouse tap reads it on its own.
+    private(set) var currentMode: String {
+        get { modeLock.withLock { mode } }
+        set { modeLock.withLock { mode = newValue } }
+    }
     var enabled = true
     /// Called with the new mode's name and the previous one whenever the mode changes.
     var onModeChange: ((_ mode: String, _ previous: String) -> Void)?
@@ -20,11 +26,11 @@ final class HotkeyEngine {
         self.onCommands = onCommands
     }
 
-    /// Replaces all bindings and goes back to `main`.
+    /// Replaces all bindings and goes back to `main`. Mouse button bindings are MouseActions'.
     func load(modes: [String: Mode], sides: ModifierSides) {
         self.sides = sides
         self.modes = modes.mapValues { mode in
-            Dictionary(uniqueKeysWithValues: mode.bindings.map { (KeyPress($0.key), $0.value) })
+            Dictionary(uniqueKeysWithValues: mode.bindings.filter { $0.key.mouseButton == nil }.map { (KeyPress($0.key), $0.value) })
         }
         enter("main")
     }

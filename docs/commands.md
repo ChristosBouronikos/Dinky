@@ -18,6 +18,8 @@ prints it.
 | `workspace-back-and-forth` | Switch to the previous workspace. |
 | `move-window-to-workspace <n\|prev\|next> [--follow]` | Move the focused window, and with `--follow` go too. |
 | `move-window-to-display <next\|prev> [--follow]` | Move the focused window to another display's workspace. |
+| `move-window-to-scratchpad` | Float the focused window and hide it in the [scratchpad](configuration.md#scratchpad). |
+| `scratchpad [toggle\|show\|hide]` | Show the scratchpad's windows over the focused workspace, or hide them. `toggle`, the default, hides them when they show here and otherwise brings them here from wherever they were left. |
 | `focus <left\|down\|up\|right> [--boundaries <b>] [--boundaries-action <a>]` | Focus the nearest window. `--boundaries` is `workspace` (default) or `all-monitors-outer-frame`, which continues onto the next display. `--boundaries-action` is `stop` (default), `fail`, `wrap-around-the-workspace` (`--wrap-around`) or `wrap-around-all-monitors`, which needs `all-monitors-outer-frame`. |
 | `focus-monitor <left\|down\|up\|right\|next\|prev\|n>` | Focus a display. |
 | `move <left\|down\|up\|right>` | Move the focused window in the tree. |
@@ -25,6 +27,7 @@ prints it.
 | `resize <smart\|width\|height> <+n\|-n>` | Resize by n points. |
 | `layout <tiles\|accordion\|horizontal\|vertical\|auto\|h_tiles\|v_tiles\|h_accordion\|v_accordion\|floating\|tiling\|scrolling>...` | Set the container's layout, float/tile the window, or switch the workspace to [scrolling](configuration.md#scrolling); a container layout switches it back. Given several, applies the one after the current one, so `layout floating tiling` toggles and `layout tiles accordion scrolling` cycles. Acts on the focused window, tiling it first if it floats, so it does nothing on an empty workspace. |
 | `fullscreen` | Toggle filling the workspace (not macOS full screen). |
+| `close` | Close the focused window, as its close button would. The app may ask to save first. |
 | `flatten-workspace-tree` | Put every window back into the workspace's layout, in order, undoing tree edits. A scrolling workspace keeps its column widths. |
 | `balance-sizes` | Give every window an equal share. |
 | `retile` | Re-read windows and re-apply every layout. |

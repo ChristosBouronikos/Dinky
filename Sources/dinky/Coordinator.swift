@@ -253,6 +253,7 @@ final class Coordinator {
         animator.forget(id)
         heldTabs[id] = nil
         notTabs.remove(id)
+        AppState.shared.scratchpad.forget(id)
         guard let placement = placements.removeValue(forKey: id), let space = placement.space,
               !takeOverTile(of: id, in: space) else { return }
         edit(space) { $0.remove(id) }
@@ -286,10 +287,11 @@ final class Coordinator {
         edit(key) { $0.focus(id) }
     }
 
-    /// The tree of a user Space, numbered workspace or not, created on first use. Nil for full-screen Spaces.
+    /// The tree of a user Space, numbered workspace or not, created on first use. Nil for full-screen Spaces and
+    /// the scratchpad's.
     private func key(of window: Window) -> UInt64? {
         guard let display = displays.display(containingSpace: window.spaceID),
-              display.userSpaces.contains(window.spaceID) else { return nil }
+              display.userSpaces.contains(window.spaceID), window.spaceID != AppState.shared.scratchpad.space else { return nil }
         let settings = settings(for: window.spaceID)
         guard settings.tiling else { return nil }
         let key = window.spaceID
@@ -371,6 +373,17 @@ final class Coordinator {
     private var animates: Bool {
         config.animations.enabled && config.animations.durationMs > 0
             && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+    }
+
+    /// Glides windows no tree holds, the scratchpad's, from `starts` to `targets` as one pass under `key`, then runs
+    /// `finish`. A new glide under the same key retargets the windows and replaces `finish`. False, with nothing
+    /// done, when passes don't glide: animations off, or Reduce Motion on.
+    func glide(_ key: UInt64, from starts: [WindowID: CGRect], to targets: [WindowID: CGRect],
+               then finish: @escaping () -> Void) -> Bool {
+        guard animates else { return false }
+        let pids = Dictionary(uniqueKeysWithValues: targets.keys.compactMap { id in model.windows[id].map { (id, $0.pid) } })
+        animator.animate(key, from: starts, to: targets, pids: pids, then: finish)
+        return true
     }
 
     /// Whether dinky is gliding the window to its tile right now.

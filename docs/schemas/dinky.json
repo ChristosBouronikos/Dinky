@@ -177,6 +177,52 @@
         }
       }
     },
+    "mouse": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Dragging a window from anywhere in it while modifiers are held.",
+      "properties": {
+        "move": {
+          "type": "string",
+          "pattern": "^((alt|ctrl|cmd|shift)(-(alt|ctrl|cmd|shift))*)?$",
+          "default": "alt",
+          "description": "Modifiers joined by '-', such as 'ctrl-alt', held to move a window by dragging it with the left button. '' turns it off."
+        },
+        "resize": {
+          "type": "string",
+          "pattern": "^((alt|ctrl|cmd|shift)(-(alt|ctrl|cmd|shift))*)?$",
+          "default": "alt",
+          "description": "Modifiers held to resize a window by dragging it with the right button, from the nearest corner. '' turns it off."
+        }
+      }
+    },
+    "scratchpad": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "How the scratchpad's windows are laid out when shown, together in the middle of the display.",
+      "properties": {
+        "width": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 1,
+          "default": 0.8,
+          "description": "The shown windows' share of the display inside the outer gaps, across."
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 1,
+          "default": 0.8,
+          "description": "The shown windows' share of the display inside the outer gaps, down."
+        },
+        "slide": {
+          "type": "string",
+          "enum": ["none", "bottom", "left", "right"],
+          "default": "none",
+          "description": "The display edge the windows glide in from when shown and out to when hidden, following [animations]."
+        }
+      }
+    },
     "modifiers": {
       "type": "object",
       "additionalProperties": false,
@@ -278,7 +324,7 @@
     },
     "command": {
       "type": "string",
-      "pattern": "^\\s*(workspace|workspace-back-and-forth|move-window-to-workspace|move-window-to-display|focus|focus-monitor|move|join-with|resize|layout|fullscreen|flatten-workspace-tree|balance-sizes|retile|clear-minimum-sizes|mode|reload-config|enable|list-workspaces|list-windows|list-monitors|list-displays|list-modes|debug-state|exec-and-forget)(\\s.*)?$",
+      "pattern": "^\\s*(workspace|workspace-back-and-forth|move-window-to-workspace|move-window-to-display|move-window-to-scratchpad|scratchpad|focus|focus-monitor|move|join-with|resize|layout|fullscreen|close|flatten-workspace-tree|balance-sizes|retile|clear-minimum-sizes|mode|reload-config|enable|list-workspaces|list-windows|list-monitors|list-displays|list-modes|debug-state|exec-and-forget)(\\s.*)?$",
       "description": "A dinky command, as `dinky help` lists them: `workspace 3`, `layout floating`, `exec-and-forget open -a Safari`."
     },
     "commands": {
@@ -297,8 +343,8 @@
     },
     "keyCombo": {
       "type": "string",
-      "pattern": "^((alt|ctrl|cmd|shift)-)*([a-z0-9]|f[1-9]|f1[0-9]|f20|keypad-([0-9]|clear|decimal|divide|enter|equal|minus|multiply|plus)|section|minus|equal|left-bracket|right-bracket|backslash|semicolon|quote|comma|period|slash|backtick|page-up|page-down|home|end|forward-delete|space|enter|esc|backspace|tab|left|down|up|right)$",
-      "description": "Zero or more modifiers (alt, ctrl, cmd, shift) and one key name, joined by '-': alt-shift-h, ctrl-left, alt-page-up, f5."
+      "pattern": "^((alt|ctrl|cmd|shift)-)*([a-z0-9]|f[1-9]|f1[0-9]|f20|keypad-([0-9]|clear|decimal|divide|enter|equal|minus|multiply|plus)|section|minus|equal|left-bracket|right-bracket|backslash|semicolon|quote|comma|period|slash|backtick|page-up|page-down|home|end|forward-delete|space|enter|esc|backspace|tab|left|down|up|right|mouse-(left|right|middle|4|5))$",
+      "description": "Zero or more modifiers (alt, ctrl, cmd, shift) and one key name, joined by '-': alt-shift-h, ctrl-left, alt-page-up, f5. A mouse button name in the key's place, such as alt-mouse-middle, binds a mouse button."
     }
   }
 }

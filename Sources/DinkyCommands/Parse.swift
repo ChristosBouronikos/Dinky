@@ -53,6 +53,11 @@ extension Command {
             let (rest, follow) = followFlag(args)
             guard rest.count == 1, let target = DisplayTarget(rawValue: rest[0]) else { return nil }
             return .moveWindowToDisplay(target, follow: follow)
+        case "move-window-to-scratchpad":
+            return none ? .moveWindowToScratchpad : nil
+        case "scratchpad":
+            if none { return .scratchpad(.toggle) }
+            return one.flatMap(ScratchpadAction.init(rawValue:)).map { .scratchpad($0) }
         case "focus":
             return try focus(args)
         case "focus-monitor":
@@ -72,6 +77,8 @@ extension Command {
             return .layout(layouts)
         case "fullscreen":
             return none ? .fullscreen : nil
+        case "close":
+            return none ? .close : nil
         case "flatten-workspace-tree":
             return none ? .flattenWorkspaceTree : nil
         case "balance-sizes":

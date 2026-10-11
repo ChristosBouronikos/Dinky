@@ -22,6 +22,26 @@ struct KeyComboTests {
         }
     }
 
+    @Test func `Mouse buttons`() throws {
+        #expect(try KeyCombo("alt-mouse-middle") == KeyCombo(modifiers: .alt, key: "mouse-middle"))
+        #expect(try KeyCombo("mouse-4").mouseButton == 3)
+        #expect(try KeyCombo("ctrl-shift-mouse-left").mouseButton == 0)
+        #expect(try KeyCombo("alt-h").mouseButton == nil)
+        for name in KeyCombo.mouseButtons.keys {
+            #expect(KeyCombo.keyCodes[name] == nil, "\(name) is also a key")
+            #expect(try KeyCombo("cmd-\(name)").key == name)
+        }
+        #expect(throws: ConfigError.self) { try KeyCombo("alt-mouse-6") }
+    }
+
+    @Test func `Modifier names`() {
+        #expect(KeyCombo.Modifiers(names: "alt") == .alt)
+        #expect(KeyCombo.Modifiers(names: "shift-ctrl-alt") == [.alt, .ctrl, .shift])
+        #expect(KeyCombo.Modifiers(names: "super") == nil)
+        #expect(KeyCombo.Modifiers(names: "alt-") == nil)
+        #expect(KeyCombo.Modifiers(names: "alt-h") == nil)
+    }
+
     @Test func `Key names are kebab-case`() {
         for name in KeyCombo.keyCodes.keys {
             #expect(name == name.lowercased(), "\(name)")

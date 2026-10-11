@@ -42,6 +42,10 @@ enum Dispatcher {
             return moveWindowToWorkspace(target, follow: follow, window: window ?? focusedWindowID())
         case .moveWindowToDisplay(let target, let follow):
             return moveWindowToDisplay(target, follow: follow, window: window ?? focusedWindowID())
+        case .moveWindowToScratchpad:
+            return AppState.shared.scratchpad.add(window ?? focusedWindowID())
+        case .scratchpad(let action):
+            return AppState.shared.scratchpad.run(action)
         case .focus(let direction, let boundaries, let action):
             return focus(direction, boundaries: boundaries, action: action)
         case .focusMonitor(let target):
@@ -63,6 +67,8 @@ enum Dispatcher {
             return tree("resize \(dimension.rawValue) \(delta)") { $0.resize(by: CGFloat(delta), along: axis) }
         case .fullscreen:
             return tree("fullscreen") { $0.toggleFullscreen(); return true }
+        case .close:
+            return close(window ?? focusedWindowID())
         case .flattenWorkspaceTree:
             return tree("flatten-workspace-tree") { $0.flatten(); return true }
         case .balanceSizes:
@@ -267,8 +273,24 @@ enum Dispatcher {
         let from = AppState.shared.displays.display(ofWindow: wid)
         if let error = move(wid, to: space, arriving: destination) { return error }
         if let from { keepOffset(of: wid, from: from, to: to) }
+        // A window sent to a workspace stays there instead of going back with the scratchpad.
+        AppState.shared.scratchpad.forget(wid)
         AppState.shared.coordinator?.windowMoved(wid, refocus: !follow)
         return nil
+    }
+
+    /// Presses the window's close button, as clicking it would, so the app can ask to save first.
+    private static func close(_ wid: WindowID) -> Reply {
+        guard wid != 0, let pid = windowPID(wid), let element = axWindow(pid: pid, wid: wid, timeout: FrameApplier.timeout) else {
+            return .error("close: no focused window")
+        }
+        var button: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXCloseButtonAttribute as CFString, &button) == .success,
+              let button, CFGetTypeID(button) == AXUIElementGetTypeID(),
+              AXUIElementPerformAction(button as! AXUIElement, kAXPressAction as CFString) == .success else {
+            return .error("close: window \(wid) has no close button")
+        }
+        return .ok("closed window \(wid)")
     }
 
     /// A floating window moved to another display keeps its offset from the display's corner; the tree places a

@@ -31,7 +31,11 @@ struct ConfigTests {
         #expect(try main[KeyCombo("alt-k")] == ["focus up"])
         #expect(try main[KeyCombo("alt-shift-l")] == ["move right"])
         #expect(try main[KeyCombo("alt-shift-semicolon")] == ["mode service"])
-        #expect(main.count == 37)
+        #expect(try main[KeyCombo("alt-s")] == ["scratchpad toggle"])
+        #expect(try main[KeyCombo("alt-shift-s")] == ["move-window-to-scratchpad"])
+        #expect(try main[KeyCombo("alt-shift-q")] == ["close"])
+        #expect(try main[KeyCombo("alt-mouse-middle")] == ["close"])
+        #expect(main.count == 41)
         #expect(try config.modes["service"]!.bindings[KeyCombo("esc")] == ["reload-config", "mode main"])
         #expect(try config.modes["service"]!.bindings[KeyCombo("alt-shift-j")] == ["join-with down", "mode main"])
     }
@@ -291,6 +295,53 @@ struct ConfigTests {
         #expect(!config.drag.placeholders)
         assertError("[animations]\nduration-ms = -1\n", path: "animations.duration-ms", line: 2, contains: "0 to 1000")
         assertError("[drag]\nghost = true\n", path: "drag.ghost", line: 2, contains: "unknown key")
+    }
+
+    @Test func `Mouse and scratchpad`() throws {
+        #expect(Config.default.mouse == Mouse())
+        #expect(Config.default.mouse.move == .alt)
+        #expect(Config.default.mouse.resize == .alt)
+        #expect(Config.default.scratchpad == Scratchpad())
+        #expect(Config.default.scratchpad.width == 0.8)
+        let config = try Config.parse("""
+        [mouse]
+        move = 'shift-ctrl'
+        resize = ''
+        [scratchpad]
+        width = 0.5
+        height = 1.0
+        slide = 'right'
+        """)
+        #expect(Config.default.scratchpad.slide == .none)
+        #expect(config.scratchpad.slide == .right)
+        assertError("[scratchpad]\nslide = 'top'\n", path: "scratchpad.slide", line: 2, contains: "'none', 'bottom', 'left', 'right'")
+        #expect(config.mouse.move == [.ctrl, .shift])
+        #expect(config.mouse.resize == nil)
+        #expect(config.scratchpad.width == 0.5)
+        #expect(config.scratchpad.height == 1)
+        assertError("[mouse]\nmove = 'super'\n", path: "mouse.move", line: 2, contains: "'super' is not modifiers")
+        assertError("[mouse]\nmove = 'alt-'\n", path: "mouse.move", line: 2, contains: "is not modifiers")
+        assertError("[mouse]\nclose = 'alt'\n", path: "mouse.close", line: 2, contains: "unknown key")
+        assertError("[scratchpad]\nwidth = 1.5\n", path: "scratchpad.width", line: 2, contains: "0.1 to 1")
+        assertError("[scratchpad]\nheight = 0.0\n", path: "scratchpad.height", line: 2, contains: "0.1 to 1")
+    }
+
+    @Test func `Mouse button bindings`() throws {
+        let config = try Config.parse("""
+        [mode.main]
+        alt-mouse-middle = 'close'
+        mouse-4 = 'workspace prev'
+        ctrl-mouse-left = 'layout floating tiling'
+        """)
+        let bindings = config.modes["main"]!.bindings
+        #expect(bindings[KeyCombo(modifiers: .alt, key: "mouse-middle")] == ["close"])
+        #expect(bindings[KeyCombo(key: "mouse-4")] == ["workspace prev"])
+        #expect(bindings[KeyCombo(modifiers: .ctrl, key: "mouse-left")] == ["layout floating tiling"])
+        assertError("[mode.main]\nmouse-left = 'close'\n", path: "mode.main.mouse-left", line: 2, contains: "needs a modifier")
+        assertError("[mode.main]\nalt-mouse-left = 'close'\n", path: "mode.main.alt-mouse-left", line: 2, contains: "[mouse] move")
+        assertError("[mode.main]\nalt-mouse-right = 'close'\n", path: "mode.main.alt-mouse-right", line: 2, contains: "[mouse] resize")
+        // Taken back from [mouse], the button is free to bind.
+        #expect(throws: Never.self) { try Config.parse("[mouse]\nmove = ''\n[mode.main]\nalt-mouse-left = 'close'\n") }
     }
 
     @Test func `Modifier sides`() throws {

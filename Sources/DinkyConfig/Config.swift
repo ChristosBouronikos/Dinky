@@ -31,6 +31,8 @@ public struct Config: Equatable {
     public var focusFollowsMouse = FocusFollowsMouse()
     public var animations = Animations()
     public var drag = Drag()
+    public var mouse = Mouse()
+    public var scratchpad = Scratchpad()
     public var modifiers = ModifierSides()
     public var hooks = Hooks()
     /// `[[rules]]`, in file order.
@@ -119,6 +121,8 @@ public struct Config: Equatable {
         focusFollowsMouse = try t.table("focus-follows-mouse").map(FocusFollowsMouse.init) ?? focusFollowsMouse
         animations = try t.table("animations").map(Animations.init) ?? animations
         drag = try t.table("drag").map(Drag.init) ?? drag
+        mouse = try t.table("mouse").map(Mouse.init) ?? mouse
+        scratchpad = try t.table("scratchpad").map(Scratchpad.init) ?? scratchpad
         modifiers = try t.table("modifiers").map(ModifierSides.init) ?? modifiers
         hooks = try t.table("hooks").map(Hooks.init) ?? hooks
         rules = try t.tables("rules")?.map(WindowRule.init) ?? []
@@ -128,6 +132,25 @@ public struct Config: Equatable {
             }
         }
         try t.done()
+        try checkMouseBindings()
+    }
+
+    /// A left or right button binding needs modifiers, or every click would run it, and must not take the
+    /// modifiers `[mouse]` drags that button with.
+    private func checkMouseBindings() throws {
+        for (name, mode) in modes.sorted(by: { $0.key < $1.key }) {
+            for combo in mode.bindings.keys.sorted(by: { $0.description < $1.description }) {
+                guard ["mouse-left", "mouse-right"].contains(combo.key) else { continue }
+                let (drag, gesture) = combo.key == "mouse-left" ? (mouse.move, "move") : (mouse.resize, "resize")
+                let path = "mode.\(name).\(combo)"
+                if combo.modifiers.isEmpty {
+                    throw ConfigError(path: path, "a \(combo.key) binding needs a modifier, or every click would run it")
+                }
+                if combo.modifiers == drag {
+                    throw ConfigError(path: path, "'\(combo)' is what [mouse] \(gesture) drags with; bind other modifiers or change it there")
+                }
+            }
+        }
     }
 }
 
@@ -287,6 +310,55 @@ public struct Drag: Equatable {
 
     init(_ t: Table) throws {
         placeholders = try t.bool("placeholders") ?? placeholders
+        try t.done()
+    }
+}
+
+/// `[mouse]`: with these modifiers held, the left button drags a window from anywhere in it and the right
+/// button resizes it from its nearest corner. `''` turns either off.
+public struct Mouse: Equatable {
+    public var move: KeyCombo.Modifiers? = .alt
+    public var resize: KeyCombo.Modifiers? = .alt
+
+    public init() {}
+
+    init(_ t: Table) throws {
+        if let text = try t.string("move") { move = try Self.modifiers(text, at: t.path("move")) }
+        if let text = try t.string("resize") { resize = try Self.modifiers(text, at: t.path("resize")) }
+        try t.done()
+    }
+
+    /// Nil for `''`, off.
+    private static func modifiers(_ text: String, at path: String) throws -> KeyCombo.Modifiers? {
+        guard !text.isEmpty else { return nil }
+        guard let modifiers = KeyCombo.Modifiers(names: text) else {
+            throw ConfigError(path: path, "'\(text)' is not modifiers (alt, ctrl, cmd, shift) joined by '-', or '' for off")
+        }
+        return modifiers
+    }
+}
+
+/// The display edge the scratchpad's windows slide in from and out to, or none. There is no `top`: macOS keeps
+/// windows below the menu bar.
+public enum ScratchpadSlide: String, CaseIterable {
+    case none, bottom, left, right
+}
+
+/// `[scratchpad]`: how the scratchpad's windows are laid out when shown, together in the middle of the display.
+public struct Scratchpad: Equatable {
+    /// The shown windows' share of the display inside the outer gaps, across and down.
+    public var width = 0.8
+    public var height = 0.8
+    public var slide = ScratchpadSlide.none
+
+    public init() {}
+
+    init(_ t: Table) throws {
+        width = try t.double("width") ?? width
+        guard (0.1...1).contains(width) else { throw ConfigError(path: t.path("width"), "must be 0.1 to 1") }
+        height = try t.double("height") ?? height
+        guard (0.1...1).contains(height) else { throw ConfigError(path: t.path("height"), "must be 0.1 to 1") }
+        slide = try t.choice("slide") ?? slide
         try t.done()
     }
 }

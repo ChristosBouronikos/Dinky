@@ -233,6 +233,57 @@ drop it on another tile to swap the two; dropped anywhere else, it goes back.
 
 </div>
 
+## `[mouse]`
+
+Hold the modifiers and drag a window from anywhere in it, not just its title
+bar: the left button moves it, the right button resizes it from the corner
+nearest where you grabbed it. A floating window stays where you leave it; a
+tiled one is dropped as a title-bar drag is, under `[drag]`. dinky takes these
+clicks, so the app under the pointer doesn't see them. Every other click goes
+through untouched.
+
+<div class="wide-table" markdown="1">
+
+| Key | Default | |
+|---|---|---|
+| `move` | `'alt'` | Modifiers joined by `-`, such as `'ctrl-alt'`, held to drag with the left button. `''` turns it off. |
+| `resize` | `'alt'` | The same for resizing with the right button. |
+
+</div>
+
+`[modifiers]` applies here too: with `alt = 'left'`, only left Option drags.
+To bind a mouse button to commands, see [Keys](#keys).
+
+## `[scratchpad]`
+
+`move-window-to-scratchpad` floats a window and hides it on a Space of its
+own, which no workspace number names. `scratchpad` shows every scratchpad
+window over the focused workspace, laid out together in the middle of the
+display, and hides them again. The display never switches Space: the windows
+move instead, appearing in place, or with `slide` gliding in from an edge and
+back out to it. Tiling a scratchpad window, or moving it to a
+workspace, takes it out of the scratchpad. Quitting and `enable off` put its
+windows back where they were.
+
+<div class="wide-table" markdown="1">
+
+| Key | Default | |
+|---|---|---|
+| `width` | `0.8` | The shown windows' share of the display inside the outer gaps, from `0.1` to `1`. |
+| `height` | `0.8` | The same, down. |
+| `slide` | `'none'` | `'bottom'`, `'left'` or `'right'`: the edge windows glide in from when shown and out to when hidden. Follows `[animations]`, and Reduce Motion turns it off. There is no `'top'`, as macOS keeps windows below the menu bar. Where another display is beyond that edge, windows appear in place instead. |
+
+</div>
+
+dinky makes the scratchpad's Space the first time you use it, at the end of the
+main display's Spaces. Swiping past the last workspace shows it.
+
+```toml
+[[rules]]
+app-id = 'com.mitchellh.ghostty'
+run = 'move-window-to-scratchpad'   # every new Ghostty window starts hidden in the scratchpad
+```
+
 ## `[modifiers]`
 
 Which key of each modifier pair a binding's modifier means. Limit `alt` to one
@@ -317,6 +368,12 @@ Modifiers (`alt`, `ctrl`, `cmd`, `shift`) and one key, joined by `-`:
   `right` `page-up` `page-down` `home` `end`
 - `keypad-0`–`keypad-9`, `keypad-clear` `keypad-decimal` `keypad-divide`
   `keypad-enter` `keypad-equal` `keypad-minus` `keypad-multiply` `keypad-plus`
+- `mouse-left` `mouse-right` `mouse-middle` `mouse-4` `mouse-5`, mouse buttons
+
+A mouse button binding runs when the button is pressed, on the window under the
+pointer, which it focuses first: `alt-mouse-middle = 'close'`. `mouse-left` and
+`mouse-right` need a modifier, and not the ones `[mouse]` drags that button
+with.
 
 The default `alt-` bindings take over Option-letter characters; set
 `[modifiers] alt = 'left'` to keep right Option for typing them.
@@ -386,6 +443,18 @@ duration-ms = 150               # roughly how long a window takes to arrive
 [drag]
 placeholders = true             # outline where a dragged tile came from and the tile it will swap with
 
+# Hold these and drag a window from anywhere in it: left button moves, right button resizes.
+# Modifiers joined by '-', such as 'ctrl-alt'; '' turns it off.
+[mouse]
+move = 'alt'
+resize = 'alt'
+
+# Windows hidden by move-window-to-scratchpad show together in the middle of the display.
+[scratchpad]
+width = 0.8                     # their share of the display, across
+height = 0.8                    # and down
+slide = 'none'                  # none | bottom | left | right: glide in from that edge and back out
+
 # Which key of each pair bindings answer to: both | left | right. With alt = 'left',
 # right Option still types special characters.
 [modifiers]
@@ -444,6 +513,10 @@ alt-shift-f = 'layout floating tiling'
 alt-comma = 'layout accordion'
 alt-slash = 'layout tiles'
 alt-shift-n = 'move-window-to-display next'
+alt-s = 'scratchpad toggle'
+alt-shift-s = 'move-window-to-scratchpad'
+alt-shift-q = 'close'
+alt-mouse-middle = 'close'      # mouse buttons: mouse-left, mouse-right, mouse-middle, mouse-4, mouse-5
 alt-shift-semicolon = 'mode service'
 
 [mode.service]

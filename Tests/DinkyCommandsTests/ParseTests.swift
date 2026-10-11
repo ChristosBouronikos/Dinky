@@ -88,8 +88,17 @@ struct ParseTests {
         #expect(try parse("enable toggle") == .enable(.toggle))
         #expect(try parse("retile") == .retile)
         #expect(try parse("clear-minimum-sizes") == .clearMinimumSizes)
+        #expect(try parse("close") == .close)
         #expect(try parse("exec-and-forget sketchybar --trigger 'a b'") == .execAndForget("sketchybar --trigger 'a b'"))
         #expect(try parse("  exec-and-forget   echo  hi") == .execAndForget("echo  hi"))
+    }
+
+    @Test func scratchpad() throws {
+        #expect(try parse("move-window-to-scratchpad") == .moveWindowToScratchpad)
+        #expect(try parse("scratchpad") == .scratchpad(.toggle))
+        #expect(try parse("scratchpad toggle") == .scratchpad(.toggle))
+        #expect(try parse("scratchpad show") == .scratchpad(.show))
+        #expect(try parse("scratchpad hide") == .scratchpad(.hide))
     }
 
     @Test func `Extra whitespace is ignored`() throws {
@@ -114,8 +123,9 @@ struct ParseTests {
     /// One line that parses, per documented command.
     private static let knownGood = [
         "workspace 1", "workspace-back-and-forth", "move-window-to-workspace 2 --follow", "move-window-to-display next",
+        "move-window-to-scratchpad", "scratchpad toggle",
         "focus left", "focus-monitor next", "move left", "join-with left", "resize smart +10", "layout tiles",
-        "fullscreen", "flatten-workspace-tree", "balance-sizes", "retile", "clear-minimum-sizes", "mode main", "reload-config", "enable on",
+        "fullscreen", "close", "flatten-workspace-tree", "balance-sizes", "retile", "clear-minimum-sizes", "mode main", "reload-config", "enable on",
         "list-workspaces", "list-windows", "list-monitors", "list-displays", "list-modes", "debug-state", "exec-and-forget true",
     ]
 
@@ -164,7 +174,8 @@ struct ParseErrorTests {
     @Test(arguments: ["", "   ", "workspace", "workspace 0", "workspace -1", "workspace 1 2", "focus sideways",
                       "resize smart 50", "resize diagonal +50", "resize smart +x", "layout", "layout grid",
                       "layout tiles grid", "layout accordion h_list", "layout horizontal sideways", "layout auto_tiles", "move-window-to-display 2", "move-window-to-workspace --follow",
-                      "mode", "mode a b", "enable maybe", "fullscreen now", "Workspace 1", "exec-and-forget", "exec-and-forget  "])
+                      "mode", "mode a b", "enable maybe", "fullscreen now", "close it", "scratchpad open",
+                      "scratchpad show hide", "move-window-to-scratchpad 2", "Workspace 1", "exec-and-forget", "exec-and-forget  "])
     func `Bad strings`(s: String) {
         #expect(message(s) != "parsed")
     }

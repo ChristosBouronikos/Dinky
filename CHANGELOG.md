@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+### Scratchpad
+
+- New scratchpad: `move-window-to-scratchpad` (Option-Shift-S) floats a window and hides it on a Space of its own, and `scratchpad` (Option-S) shows every scratchpad window over the workspace you're on, together in the middle of the display, then hides them again. Nothing slides; the windows come to you. `[scratchpad] width` and `height` set how much of the display they take. A rule can send an app there: `run = 'move-window-to-scratchpad'`.
+- `[scratchpad] slide = 'bottom'` (or `'left'`, `'right'`) has scratchpad windows glide in from that edge of the display and back out to it, at the `[animations]` speed. Off by default.
+
+### Mouse
+
+- Hold Option and drag a window from anywhere in it: the left button moves it, the right button resizes it from the nearest corner. Dropping a tiled window on another tile swaps the two, as a title-bar drag does. `[mouse] move` and `resize` pick the modifiers, or `''` to turn either off.
+- Mouse buttons can be bound like keys, on the window under the pointer: `alt-mouse-middle = 'close'`. The names are `mouse-left`, `mouse-right`, `mouse-middle`, `mouse-4` and `mouse-5`.
+
+### Commands
+
+- New `close` closes the focused window, as its close button would (Option-Shift-Q, or Option-middle-click).
+
 ## 0.18
 
 ### Key bindings

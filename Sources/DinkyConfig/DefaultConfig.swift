@@ -65,6 +65,18 @@ extension Config {
     [drag]
     placeholders = true             # outline where a dragged tile came from and the tile it will swap with
 
+    # Hold these and drag a window from anywhere in it: left button moves, right button resizes.
+    # Modifiers joined by '-', such as 'ctrl-alt'; '' turns it off.
+    [mouse]
+    move = 'alt'
+    resize = 'alt'
+
+    # Windows hidden by move-window-to-scratchpad show together in the middle of the display.
+    [scratchpad]
+    width = 0.8                     # their share of the display, across
+    height = 0.8                    # and down
+    slide = 'none'                  # none | bottom | left | right: glide in from that edge and back out
+
     # Which key of each pair bindings answer to: both | left | right. With alt = 'left',
     # right Option still types special characters.
     [modifiers]
@@ -123,6 +135,10 @@ extension Config {
     alt-comma = 'layout accordion'
     alt-slash = 'layout tiles'
     alt-shift-n = 'move-window-to-display next'
+    alt-s = 'scratchpad toggle'
+    alt-shift-s = 'move-window-to-scratchpad'
+    alt-shift-q = 'close'
+    alt-mouse-middle = 'close'      # mouse buttons: mouse-left, mouse-right, mouse-middle, mouse-4, mouse-5
     alt-shift-semicolon = 'mode service'
 
     [mode.service]

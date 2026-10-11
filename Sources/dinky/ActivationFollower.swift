@@ -172,8 +172,11 @@ private func follow(_ pid: pid_t, name: String) {
     let windows = normalWindows(of: pid, [.optionAll])
     let main = mainWindowID(of: pid)
     let candidates = windows.contains(main) ? [main] + windows : windows
+    // A window hidden in the scratchpad stays hidden; `scratchpad` shows it.
+    let scratchpad = AppState.shared.scratchpad.space
     guard let (window, space, display) = candidates.lazy.compactMap({ wid -> (UInt32, UInt64, Display)? in
         let sid = dinky_window_space_id(wid)
+        guard sid != scratchpad else { return nil }
         return model.display(containingSpace: sid).map { (wid, sid, $0) }
     }).first else {
         return log("activate \(name): not followed, no display has its windows' Spaces \(windowSpaces(of: pid))")

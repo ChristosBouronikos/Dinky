@@ -2,7 +2,8 @@ import Carbon.HIToolbox
 
 /// A key binding such as `alt-shift-h`: modifiers plus a key name, joined by `-`. The leading words that
 /// name modifiers are the modifiers; the rest is the key, so `alt-page-up` is `alt` and `page-up`.
-/// Key names map to keycodes through `keyCodes`.
+/// Key names map to keycodes through `keyCodes`; a mouse button name (`mouse-middle`) takes the key's place
+/// in a mouse binding, and maps to its button number through `mouseButtons`.
 public struct KeyCombo: Hashable, CustomStringConvertible {
     public struct Modifiers: OptionSet, Hashable {
         public let rawValue: Int
@@ -15,6 +16,16 @@ public struct KeyCombo: Hashable, CustomStringConvertible {
 
         /// In canonical order.
         static let names: [(String, Modifiers)] = [("alt", .alt), ("ctrl", .ctrl), ("cmd", .cmd), ("shift", .shift)]
+
+        /// Modifier names joined by `-`, such as `alt` or `ctrl-alt`. Nil when a name is not a modifier.
+        public init?(names text: String) {
+            var modifiers: Modifiers = []
+            for name in text.split(separator: "-", omittingEmptySubsequences: false) {
+                guard let modifier = Self.names.first(where: { $0.0 == name })?.1 else { return nil }
+                modifiers.insert(modifier)
+            }
+            self = modifiers
+        }
     }
 
     public var modifiers: Modifiers
@@ -34,11 +45,19 @@ public struct KeyCombo: Hashable, CustomStringConvertible {
             parts.removeFirst()
         }
         let key = parts.joined(separator: "-")
-        guard KeyCombo.keyCodes[key] != nil else {
-            throw ConfigError("unknown key '\(key)' in '\(combo)', expected modifiers (alt, ctrl, cmd, shift) and a key name")
+        guard KeyCombo.keyCodes[key] != nil || KeyCombo.mouseButtons[key] != nil else {
+            throw ConfigError("unknown key '\(key)' in '\(combo)', expected modifiers (alt, ctrl, cmd, shift) and a key or mouse button name")
         }
         self.init(modifiers: modifiers, key: key)
     }
+
+    /// The mouse button this combo names, nil for a key.
+    public var mouseButton: Int64? { KeyCombo.mouseButtons[key] }
+
+    /// Every mouse button name and its button number as mouse events carry it.
+    public static let mouseButtons: [String: Int64] = [
+        "mouse-left": 0, "mouse-right": 1, "mouse-middle": 2, "mouse-4": 3, "mouse-5": 4,
+    ]
 
     /// Canonical form, e.g. `alt-shift-h`, whatever order the config wrote the modifiers in.
     public var description: String {
