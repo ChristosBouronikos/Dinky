@@ -57,6 +57,8 @@ final class Coordinator {
     /// moved the windows of Spaces that were not on screen to frames of their own, and a glide from there
     /// would only show the mess.
     private var snap: Set<UInt64> = []
+    /// While set, `flush` leaves the trees for later. See `spacesShown`.
+    private var holding = false
 
     init(displays: DisplayModel, config: Config) {
         self.displays = displays
@@ -66,13 +68,14 @@ final class Coordinator {
     func start() {
         model.observe { [weak self] event in self?.handle(event) }
         animator.onArrive = { [weak self] ids in self?.borders?.arrived(ids) }
-        var known = Set(displays.displays.map(\.uuid))
+        var known = displays.displays
         displays.observe { [weak self] displays in
             guard let self else { return }
-            let now = Set(displays.displays.map(\.uuid))
-            if now != known { snap.formUnion(workspaces.keys) }
-            known = now
-            reconcile()
+            let before = known
+            known = displays.displays
+            if Set(known.map(\.uuid)) != Set(before.map(\.uuid)) { snap.formUnion(workspaces.keys) }
+            // Switching Space is not worth re-reading every window and re-applying every tree.
+            if Self.onlySwitchedSpaces(from: before, to: known) { spacesShown(before: before) } else { reconcile() }
         }
         // A hidden app's windows can read as shown when their hide event arrives; re-read them once it is hidden.
         let center = NSWorkspace.shared.notificationCenter
@@ -141,6 +144,50 @@ final class Coordinator {
         flush()
     }
 
+    /// Whether the displays differ only in the Space each shows: the same displays, frames and Spaces.
+    private static func onlySwitchedSpaces(from before: [Display], to now: [Display]) -> Bool {
+        before.count == now.count && zip(before, now).allSatisfy { a, b in
+            a.uuid == b.uuid && a.id == b.id && a.frame == b.frame && a.isMain == b.isMain
+                && a.spaces == b.spaces && a.userSpaces == b.userSpaces
+        }
+    }
+
+    /// Brings the trees of the Spaces just switched to up to date, and nothing else. What can change unseen while a
+    /// Space is hidden is re-read: its windows the model missed or never classified (AX only reaches windows on a
+    /// Space on screen), windows the model places on another Space, and windows its tree holds that have left or
+    /// closed. A tree is written only when it changed while hidden, or when a window is not resting on its tile (an
+    /// app moved it), and then at once: a glide on arrival would only show the mess.
+    private func spacesShown(before: [Display]) {
+        let wasShown = Set(before.map(\.currentSpaceID))
+        let shown = displays.displays.map(\.currentSpaceID).filter { !wasShown.contains($0) }
+        // Each re-read publishes, and its event would flush: the trees wait until all are caught up, so each is
+        // written once, and without gliding.
+        let wasHolding = holding
+        holding = true
+        for key in shown {
+            let here = dinky_space_window_ids(key, false).map(\.uint32Value)
+            let stale = here.filter { id in placements[id] == nil || model.windows[id]?.spaceID != key }
+                + (workspaces[key]?.windows ?? []).filter { !here.contains($0) }
+            model.reconcile(stale)
+        }
+        holding = wasHolding
+        // The visible area moves with the Dock and the menu bar, which no display change reports.
+        fitToDisplays()
+        for key in shown {
+            guard var workspace = workspaces[key] else { continue }
+            workspace.minimumSizes = minimumSizes(in: workspace)
+            let resting = workspace.layout().frames.allSatisfy { id, tile in
+                animator.isResting(id, at: dinky_window_info(id).frame, for: tile)
+            }
+            if dirty.contains(key) || !resting {
+                dirty.insert(key)
+                snap.insert(key)
+            }
+        }
+        syncFocus()
+        flush()
+    }
+
     /// Forgets every minimum size learned and re-applies every tree, so windows are asked for their tiles again.
     func clearMinimumSizes() {
         applier.forgetMinimums()
@@ -150,13 +197,16 @@ final class Coordinator {
 
     /// Bounds and gaps of every tree from the display its Space is on now, which can have moved, resized or become
     /// main, or be another display, as when macOS moves a disconnected display's Spaces. A tree whose Space is on
-    /// no display is left as it is.
+    /// no display is left as it is; one whose layout this changes is marked dirty.
     private func fitToDisplays() {
         for key in workspaces.keys {
             guard let display = displays.display(containingSpace: key) else { continue }
-            workspaces[key]!.bounds = display.visibleArea
-            workspaces[key]!.gaps = gaps(on: display)
-            workspaces[key]!.walls = walls(of: display)
+            let (bounds, gaps, walls) = (display.visibleArea, self.gaps(on: display), self.walls(of: display))
+            edit(key) {
+                $0.bounds = bounds
+                $0.gaps = gaps
+                $0.walls = walls
+            }
         }
     }
 
@@ -318,8 +368,10 @@ final class Coordinator {
     // MARK: Applying
 
     func flush() {
+        guard !holding else { return }
         let keys = dirty
-        dirty = []
+        // A tree on a hidden Space waits for it to be shown; `spacesShown` writes it then.
+        dirty = keys.filter { !isVisible($0) && workspaces[$0] != nil }
         guard enabled else { return }
         for key in keys where isVisible(key) { apply(key) }
     }
@@ -358,7 +410,9 @@ final class Coordinator {
                 }
             }
         }
-        guard animates, snap.remove(key) == nil else { return write() }
+        // Taken whether this pass glides or not, so a snap never outlives the pass it was meant for.
+        let snapped = snap.remove(key) != nil
+        guard animates, !snapped else { return write() }
         // Stacking first, so the window coming to the front of an accordion slides in on top.
         applier.raiseIntoOrder(layout, pids: pids, front: workspace.focused)
         let starts = Dictionary(uniqueKeysWithValues: layout.order.compactMap { id in

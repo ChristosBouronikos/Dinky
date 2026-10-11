@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixes
+
+- Switching workspaces is lighter and no longer sets windows gliding. Before, every switch re-read every window on every workspace and asked each app on the workspace you arrived at where its windows were, a burst of work that grew with the number of windows open, and windows a little off their tiles glided there as you arrived. Now a switch reads only the windows of the workspace you arrive at, and lays it out only when something changed there while you were away. Then the windows are in place when the workspace shows, without gliding.
+
 ## 0.18
 
 ### Key bindings

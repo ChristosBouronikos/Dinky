@@ -79,6 +79,18 @@ final class WindowModel {
         }
     }
 
+    /// The sanity pass for some windows only: adds those the events missed, refreshes the rest and drops those that
+    /// no longer exist. Publishes what changed.
+    func reconcile(_ ids: [UInt32]) {
+        for id in ids {
+            if windows[id] == nil {
+                add(id, spaceID: 0, kind: .windowCreate)
+            } else {
+                refresh(id, kind: .windowUpdate)
+            }
+        }
+    }
+
     private func seed() {
         let now = Date()
         seededAt = now

@@ -71,7 +71,7 @@ final class Animator: NSObject {
     }
 
     /// Whether a window at `start` is as close to `target` as it gets: on it, or where it came to rest when last asked for it.
-    private func isResting(_ id: WindowID, at start: CGRect, for target: CGRect) -> Bool {
+    func isResting(_ id: WindowID, at start: CGRect, for target: CGRect) -> Bool {
         if start.isClose(to: target, within: 1) { return true }
         guard let landed = landed[id], landed.asked == target else { return false }
         return start.isClose(to: landed.got, within: 1)
