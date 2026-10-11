@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-**Upgrading:** `workspaces` now counts the workspaces on each display, not the total, and takes a list by display from the left: the default `[5, 4]` gives the left display 1 to 5 and each display after four more (6 to 9, then 10 to 13). `workspaces = [7, 3]` gives 7 and then 3 each; a single number, such as the old default `5`, gives that many on every display.
+**Upgrading:** `workspaces` now counts the workspaces on each display, not the total, and takes a list by display from the left: the default `[5, 4]` gives the left display 1 to 5 and each display after four more (6 to 9, then 10 to 13). `workspaces = [7, 3]` gives 7 and then 3 each; a single number, such as the old default `5`, gives that many on every display. Numbers follow the displays' places, so plugging a display in to the left of a laptop, or rearranging displays, moves workspaces and their windows to the display that now has their numbers. A display pattern made only of digits, such as `[display.2]`, is now a display number rather than part of a name.
 
 ### Displays
 
