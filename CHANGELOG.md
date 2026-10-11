@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixes
+
+- Turning dinky off takes its borders away and leaves window drags alone. Before, the borders stayed on, trailing behind a dragged window and slowing everything down, and dragging a window still outlined the tile it would swap with, swapping them once dinky was back on.
+
 ## 0.18
 
 ### Key bindings

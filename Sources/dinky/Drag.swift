@@ -9,8 +9,8 @@ import DinkyLayout
 extension Coordinator {
     func noteFrameChange(of id: WindowID) {
         if dragging == id { return showPlaceholders() }
-        // Only tiled windows have a Space.
-        guard dragging == nil, placements[id]?.space != nil, !isAnimating(id), mouseButtonDown else { return }
+        // Only tiled windows have a Space. Disabled, dinky leaves drags alone.
+        guard enabled, dragging == nil, placements[id]?.space != nil, !isAnimating(id), mouseButtonDown else { return }
         dragging = id
         showPlaceholders()
         watchDragEnd()
@@ -28,6 +28,13 @@ extension Coordinator {
                 self.dropped(id)
             }
         }
+    }
+
+    /// Lets go of the drag under way without acting on its release, as when dinky is disabled mid-drag.
+    func cancelDrag() {
+        guard dragging != nil else { return }
+        dragging = nil
+        placeholders.hide()
     }
 
     private func dropped(_ id: WindowID) {

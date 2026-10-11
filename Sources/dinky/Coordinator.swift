@@ -18,7 +18,8 @@ final class Coordinator {
     let model = WindowModel()
     var enabled = true {
         didSet {
-            if !enabled { applier.cancel(); animator.cancel() }
+            if !enabled { applier.cancel(); animator.cancel(); cancelDrag() }
+            if enabled != oldValue { updateBorders() }
             if enabled, !oldValue { reconcile() }
         }
     }
@@ -90,19 +91,25 @@ final class Coordinator {
     func update(config: Config) {
         self.config = config
         animator.setDuration(ms: config.animations.durationMs)
-        if config.borders.enabled {
-            borders = borders ?? BorderManager(config: config.borders, model: model,
-                                               isAnimating: { [unowned self] id in animator.isAnimating(id) })
-            borders?.update(config: config.borders)
-        } else {
-            borders = nil
-        }
+        updateBorders()
         configureWorkspaces()
         // A workspace switched to/from floating must release/acquire its existing windows too.
         for window in model.windows.values { track(window) }
         fitToDisplays()
         dirty.formUnion(workspaces.keys)
         flush()
+    }
+
+    /// Borders are drawn while dinky is enabled and the config has them on. Otherwise their windows are released,
+    /// and nothing follows windows as they move.
+    private func updateBorders() {
+        if enabled, config.borders.enabled {
+            borders = borders ?? BorderManager(config: config.borders, model: model,
+                                               isAnimating: { [unowned self] id in animator.isAnimating(id) })
+            borders?.update(config: config.borders)
+        } else {
+            borders = nil
+        }
     }
 
     // MARK: Events

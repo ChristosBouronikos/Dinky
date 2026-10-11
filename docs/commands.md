@@ -31,7 +31,7 @@ prints it.
 | `clear-minimum-sizes` | Forget the minimum window sizes learned for every app and re-apply every layout. |
 | `mode <name>` | Switch binding mode. |
 | `reload-config` | Reload the config. |
-| `enable <on\|off\|toggle>` | Turn dinky on or off. Off restores windows and turns key bindings off too, so turn it back on from the menu or with `dinky enable on`. |
+| `enable <on\|off\|toggle>` | Turn dinky on or off. Off restores windows, takes their borders away and turns key bindings off too, so turn it back on from the menu or with `dinky enable on`. |
 | `list-workspaces`, `list-windows`, `list-monitors`, `list-displays`, `list-modes` | See [Scripting](#scripting). `list-displays` = `list-monitors`. |
 | `debug-state` | Tiling state as JSON, for bug reports. |
 | `exec-and-forget <shell command>` | Run with `/bin/sh -c` without waiting. Output goes to the log. |
