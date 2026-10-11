@@ -22,7 +22,10 @@ final class DragPlaceholders {
 
     private func place(_ panel: NSPanel, at rect: CGRect, below window: WindowID, cornerRadius: CGFloat) {
         (panel.contentView as! PlaceholderView).cornerRadius = cornerRadius
-        panel.setFrame(Self.appKitFrame(rect), display: true)
+        let frame = Self.appKitFrame(rect)
+        // Asked on every frame of the drag, but an outline only moves when its tile changes.
+        guard !panel.isVisible || panel.frame != frame else { return }
+        panel.setFrame(frame, display: true)
         panel.order(.below, relativeTo: Int(window))
     }
 

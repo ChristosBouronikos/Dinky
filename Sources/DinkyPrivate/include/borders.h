@@ -30,9 +30,13 @@ uint32_t dinky_border_create(double scale);
 void dinky_border_update(uint32_t border, uint32_t target, CGRect frame, int cornerRadius,
                          DinkyBorderColor color, double width, DinkyBorderOrder order);
 
-// Moves and re-orders without redrawing: the cheap path for drags and re-tiles that keep the size.
+// Moves and re-orders without redrawing: for re-tiles and restacking that keep the size.
 void dinky_border_move(uint32_t border, uint32_t target, CGRect frame, double width,
                        DinkyBorderOrder order);
+
+// Only moves, keeping the border's level and place in the stacking: the cheapest path, for a
+// target that did nothing but move, as on every frame of a drag.
+void dinky_border_follow(uint32_t border, CGRect frame, double width);
 
 // Puts the border on the target's Space. New borders start on the current Space.
 void dinky_border_move_to_space(uint32_t border, uint64_t spaceID);

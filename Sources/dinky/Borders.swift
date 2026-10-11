@@ -15,8 +15,9 @@ final class BorderManager {
     private var borders: [UInt32: BorderWindow] = [:]
     private var focusedID: UInt32 = 0
     private var visibleSpaces: Set<UInt64> = []
-    /// What the next flush does: check focus, place every border, or place the borders of these windows.
-    private var pending = (refocus: false, all: false, ids: Set<UInt32>())
+    /// What the next flush does: check focus, place every border, or place the borders of these windows and move
+    /// those of windows that only moved.
+    private var pending = (refocus: false, all: false, ids: Set<UInt32>(), moved: Set<UInt32>())
     private var flushScheduled = false
     /// Whether dinky is animating the window, when its border only follows moves: redrawing it at every
     /// size of a resize costs more than a frame.
@@ -69,9 +70,13 @@ final class BorderManager {
                 // border below it: an app's activation, or the accordion raising its other windows, buries the
                 // focused border under the windows raised after it. So any reorder places every border again.
                 pending.all = true
+            } else if event.kind == .windowMove {
+                // A window being dragged or animated moves every frame, and its border only needs moving along,
+                // once for all the moves of one turn.
+                pending.moved.insert(window.id)
             } else {
-                // A window being animated or dragged sends a move and a resize every frame, and placing its
-                // border is a WindowServer round trip, so the events of one turn share one placement.
+                // A window being animated or resized sends a resize every frame, and placing its border is a
+                // WindowServer round trip, so the events of one turn share one placement.
                 pending.ids.insert(window.id)
             }
         }
@@ -87,10 +92,18 @@ final class BorderManager {
     /// Does what the events since the last flush asked for: focus first, then the borders.
     private func flush() {
         let work = pending
-        pending = (refocus: false, all: false, ids: [])
+        pending = (refocus: false, all: false, ids: [], moved: [])
         flushScheduled = false
         if work.refocus { refocus() }
-        if work.all { syncAll() } else { sync(work.ids) }
+        if work.all { syncAll() } else { sync(work.ids); follow(work.moved.subtracting(work.ids)) }
+    }
+
+    /// Borders of windows that only moved follow them. One that needs more than a move is placed in full.
+    private func follow(_ ids: Set<UInt32>) {
+        for id in ids {
+            guard let window = model.windows[id] else { continue }
+            if borders[id]?.follow(window, config: config) != true { sync(window) }
+        }
     }
 
     /// Windows that finished animating: their borders catch up with any size they skipped.

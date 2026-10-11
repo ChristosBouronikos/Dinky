@@ -48,6 +48,8 @@ final class WindowModel {
     /// When the table was seeded. Windows first seen after it were created while dinky ran.
     private(set) var seededAt = Date.distantFuture
     private var observers: [(WindowEvent) -> Void] = []
+    /// Windows that moved lately, by the full re-read each gets once it has been still for a moment. See `moved`.
+    private var settling: [UInt32: DispatchWorkItem] = [:]
 
     private let ownPID = getpid()
 
@@ -106,6 +108,8 @@ final class WindowModel {
             remove(id, kind: event.kind, pid: event.pid)
         case .spaceChange, .spaceCreated, .spaceDestroyed, .frontApp:
             publish(event.kind, .none, nil, pid: event.pid, spaceID: event.spaceID)
+        case .windowMove where windows[id] != nil:
+            moved(id)
         default:
             if windows[id] != nil {
                 refresh(id, kind: event.kind)
@@ -146,6 +150,25 @@ final class WindowModel {
         window.spaceID = dinky_window_space_id(id)
         windows[id] = window
         publish(kind, .updated, window, pid: window.pid)
+    }
+
+    /// A move comes on every frame of a drag or a glide, so it reads only the frame. The full re-read waits until the
+    /// window has been still for a moment, for whatever changed along with it, such as its Space when it is dropped
+    /// on another display.
+    private func moved(_ id: UInt32) {
+        guard var window = windows[id] else { return }
+        let frame = dinky_window_frame(id)
+        guard !frame.isNull else { return refresh(id, kind: .windowMove) }
+        window.frame = frame
+        windows[id] = window
+        publish(.windowMove, .updated, window, pid: window.pid)
+        settling[id]?.cancel()
+        let settle = DispatchWorkItem { [weak self] in
+            self?.settling[id] = nil
+            self?.refresh(id)
+        }
+        settling[id] = settle
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: settle)
     }
 
     // nil for dinky's own windows, windows that are already gone and child windows.

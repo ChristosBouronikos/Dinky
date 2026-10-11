@@ -139,6 +139,15 @@ void dinky_border_move(uint32_t border, uint32_t target, CGRect frame, double wi
     place(border, target, outer_frame(frame, width).origin, order, false);
 }
 
+void dinky_border_follow(uint32_t border, CGRect frame, double width)
+{
+    CFTypeRef transaction = SLSTransactionCreate(dinky_connection());
+    if (!transaction) return;
+    SLSTransactionMoveWindowWithGroup(transaction, border, outer_frame(frame, width).origin);
+    SLSTransactionCommit(transaction, 0);
+    CFRelease(transaction);
+}
+
 void dinky_border_move_to_space(uint32_t border, uint64_t spaceID)
 {
     SLSMoveWindowsToManagedSpace(dinky_connection(), (__bridge CFArrayRef)@[@(border)], spaceID);

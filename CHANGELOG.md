@@ -5,6 +5,7 @@
 ### Fixes
 
 - Turning dinky off takes its borders away and leaves window drags alone. Before, the borders stayed on, trailing behind a dragged window and slowing everything down, and dragging a window still outlined the tile it would swap with, swapping them once dinky was back on.
+- Dragging a window is much lighter, so the drag stays smooth and its border keeps up more closely, and windows gliding to their tiles cost less too. Before, every step of a drag had dinky re-read the whole window, restack its border and redraw the drop outlines, which could slow everything down.
 
 ## 0.18
 

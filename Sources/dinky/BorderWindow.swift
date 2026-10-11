@@ -60,6 +60,15 @@ final class BorderWindow {
         isShown = true
     }
 
+    /// Follows a window that only moved: the border keeps its shape, Space and place in the stacking, so it is moved
+    /// without being redrawn or re-ordered. False if it needs `update` instead: it is hidden, or the window has a new
+    /// size or reached a display of another scale.
+    func follow(_ window: Window, config: Borders) -> Bool {
+        guard isShown, drawn?.size == window.frame.size, backingScale(of: window.frame) == scale else { return false }
+        dinky_border_follow(id, window.frame, config.width)
+        return true
+    }
+
     func hide() {
         guard isShown else { return }
         dinky_border_hide(id)
